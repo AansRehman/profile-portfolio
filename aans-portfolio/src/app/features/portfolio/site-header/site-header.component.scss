@@ -1,0 +1,136 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &--scrolled {
+    background: color-mix(in srgb, var(--color-bg) 88%, transparent);
+    border-bottom: 1px solid var(--color-border);
+    backdrop-filter: blur(12px);
+  }
+
+  &__inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0.875rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  &__brand {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.06em;
+    color: var(--color-accent);
+    text-decoration: none;
+    border: 1px solid color-mix(in srgb, var(--color-accent) 45%, transparent);
+    padding: 0.35rem 0.55rem;
+    border-radius: 6px;
+
+    &:hover {
+      border-color: var(--color-accent);
+    }
+  }
+
+  &__toggle {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.35rem;
+
+    @media (max-width: 768px) {
+      display: flex;
+    }
+  }
+
+  &__toggle-bar {
+    width: 22px;
+    height: 2px;
+    background: var(--color-text);
+    border-radius: 1px;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+
+  &--open &__toggle-bar:nth-child(3) {
+    opacity: 0;
+  }
+
+  &--open &__toggle-bar:nth-child(2) {
+    transform: translateY(7px) rotate(45deg);
+  }
+
+  &--open &__toggle-bar:nth-child(4) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  &__nav {
+    display: flex;
+    align-items: center;
+    gap: 1.35rem;
+    font-size: 0.9rem;
+
+    a {
+      color: var(--color-muted);
+      text-decoration: none;
+      white-space: nowrap;
+
+      &:hover {
+        color: var(--color-text);
+      }
+    }
+
+    @media (max-width: 768px) {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 100%;
+      flex-direction: column;
+      align-items: stretch;
+      padding: 1rem 1.25rem 1.25rem;
+      background: var(--color-bg-elevated);
+      border-bottom: 1px solid var(--color-border);
+      gap: 0;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+      transition: max-height 0.25s ease, opacity 0.2s ease;
+
+      a {
+        padding: 0.65rem 0;
+        border-bottom: 1px solid var(--color-border);
+
+        &:last-child {
+          border-bottom: none;
+        }
+      }
+    }
+  }
+
+  &--open &__nav {
+    @media (max-width: 768px) {
+      max-height: 320px;
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

@@ -1,0 +1,29 @@
+<header class="header" [class.header--scrolled]="scrolled()" [class.header--open]="menuOpen()">
+  <div class="header__inner">
+    <a class="header__brand" href="#top" (click)="closeMenu()">AR</a>
+
+    <button
+      type="button"
+      class="header__toggle"
+      [attr.aria-expanded]="menuOpen()"
+      aria-controls="site-nav"
+      (click)="toggleMenu()"
+    >
+      <span class="sr-only">Toggle menu</span>
+      <span class="header__toggle-bar"></span>
+      <span class="header__toggle-bar"></span>
+      <span class="header__toggle-bar"></span>
+    </button>
+
+    <nav id="site-nav" class="header__nav">
+      <a href="#about" (click)="closeMenu()">About</a>
+      <a href="#experience" (click)="closeMenu()">Experience</a>
+      <a href="#skills" (click)="closeMenu()">Skills</a>
+      <a href="#projects" (click)="closeMenu()">Projects</a>
+      <a href="#education" (click)="closeMenu()">Education</a>
+      <a href="#contact" (click)="closeMenu()">Contact</a>
+      <a routerLink="/admin/login" (click)="closeMenu()">Admin</a>
+      <a routerLink="/viewer" (click)="closeMenu()">Account</a>
+    </nav>
+  </div>
+</header>

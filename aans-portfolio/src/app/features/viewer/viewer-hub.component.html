@@ -1,0 +1,21 @@
+<div class="hub">
+  <h1>Account</h1>
+  <p class="muted">Viewer role: portfolio content is public; this page confirms who you are signed in as.</p>
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  } @else {
+    @if (me(); as m) {
+      <ul class="facts">
+        <li><span>Username</span> {{ m.username }}</li>
+        <li><span>Role</span> {{ m.role }}</li>
+      </ul>
+    }
+  }
+  <div class="actions">
+    <a routerLink="/">View public portfolio</a>
+    @if (auth.isAdmin()) {
+      <a routerLink="/admin/dashboard">Admin dashboard</a>
+    }
+    <button type="button" (click)="logout()">Sign out</button>
+  </div>
+</div>

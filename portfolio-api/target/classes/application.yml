@@ -1,0 +1,32 @@
+server:
+  port: 8080
+
+spring:
+  jackson:
+    default-property-inclusion: non_null
+  datasource:
+    # Default: local Oracle SID FREE (thin SID form — colon before FREE, no // in URL).
+    # Override host/port/SID with ORACLE_JDBC_URL on other machines.
+    # If you get ORA-12514, the listener does not expose that SID/service — use lsnrctl services / v$services.
+    url: ${ORACLE_JDBC_URL:jdbc:oracle:thin:@localhost:1521:FREE}
+    username: ${ORACLE_USER:system}
+    password: ${ORACLE_PASSWORD:admin}
+    driver-class-name: oracle.jdbc.OracleDriver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    database-platform: org.hibernate.dialect.OracleDialect
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc.time_zone: UTC
+
+app:
+  jwt:
+    secret: "b09f672f6c8b4e2a9d1c7e5f3a8b6c4d2e0f9a7b5c3d1e8f6a4b2c0d9e7f5a3"
+    expiration-ms: 86400000
+
+logging:
+  level:
+    org.springframework.security: INFO

@@ -1,0 +1,189 @@
+<div class="page" id="top">
+  @if (ps.loading()) {
+    <p class="status">Loading portfolio…</p>
+  } @else if (ps.error()) {
+    <p class="status status--error">{{ ps.error() }}</p>
+    <button type="button" class="btn btn--primary" (click)="ps.load()">Retry</button>
+  } @else {
+    @if (ps.profile(); as profile) {
+    <section class="hero" aria-labelledby="hero-title">
+      <p class="hero__eyebrow">{{ profile.headline }}</p>
+      <h1 id="hero-title" class="hero__title">{{ profile.name }}</h1>
+      <p class="hero__lead">{{ profile.summary }}</p>
+      <div class="hero__actions">
+        <a class="btn btn--primary" href="#projects">View projects</a>
+        <a class="btn btn--ghost" href="#contact">Get in touch</a>
+      </div>
+    </section>
+
+    <section id="about" class="section section--tight" aria-labelledby="about-title">
+      <h2 id="about-title" class="section__title">About</h2>
+      <p class="section__text section__text--spaced">{{ profile.summary }}</p>
+
+      <h3 class="about__sub">About me</h3>
+      <ul class="about__list">
+        @for (line of profile.aboutMe; track line) {
+          <li>{{ line }}</li>
+        }
+      </ul>
+
+      <h3 class="about__sub">What I bring</h3>
+      <ul class="about__list">
+        @for (line of profile.whatIBring; track line) {
+          <li>{{ line }}</li>
+        }
+      </ul>
+
+      <h3 class="about__sub">Beyond the desk</h3>
+      <ul class="about__list">
+        @for (line of profile.journeyNotes; track line) {
+          <li>{{ line }}</li>
+        }
+      </ul>
+
+      <p class="section__text section__text--connect">{{ profile.connectBlurb }}</p>
+    </section>
+
+    <section id="experience" class="section" aria-labelledby="exp-title">
+      <h2 id="exp-title" class="section__title">Experience</h2>
+      <ul class="timeline">
+        @for (job of profile.experience; track job.company + job.role + job.period) {
+          <li class="card card--timeline">
+            <div class="card__meta">
+              <span class="card__period">{{ job.period }}</span>
+            </div>
+            <h3 class="card__title">
+              {{ job.role }}
+              @if (job.clientOrNote) {
+                <span class="card__at">&#64; {{ job.company }} · {{ job.clientOrNote }}</span>
+              } @else {
+                <span class="card__at">&#64; {{ job.company }}</span>
+              }
+            </h3>
+            <ul class="bullets">
+              @for (b of job.bullets; track b) {
+                <li>{{ b }}</li>
+              }
+            </ul>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section id="skills" class="section" aria-labelledby="skills-title">
+      <h2 id="skills-title" class="section__title">Skills</h2>
+      <div class="skills-grid">
+        @for (cat of profile.skillCategories; track cat.title) {
+          <article class="card card--skill">
+            <h3 class="card__subtitle">{{ cat.title }}</h3>
+            <div class="chips">
+              @for (item of cat.items; track item) {
+                <span class="chip">{{ item }}</span>
+              }
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+
+    <section id="projects" class="section" aria-labelledby="proj-title">
+      <h2 id="proj-title" class="section__title">Projects</h2>
+      <div class="projects">
+        @for (p of profile.projects; track p.name + p.period) {
+          <article class="card card--project">
+            <header class="card__head">
+              <h3 class="card__title">{{ p.name }}</h3>
+              <p class="card__stack">{{ p.stack }}</p>
+              <p class="card__period card__period--inline">{{ p.period }}</p>
+            </header>
+            @if (p.demoUrl) {
+              <p class="demo">
+                <a [href]="p.demoUrl" target="_blank" rel="noopener noreferrer">Live demo</a>
+              </p>
+            }
+            <ul class="bullets">
+              @for (b of p.bullets; track b) {
+                <li>{{ b }}</li>
+              }
+            </ul>
+          </article>
+        }
+      </div>
+    </section>
+
+    <section id="education" class="section" aria-labelledby="edu-title">
+      <h2 id="edu-title" class="section__title">Education</h2>
+      <article class="card">
+        <h3 class="card__title">{{ profile.education.school }}</h3>
+        <p class="card__stack">{{ profile.education.degree }} · {{ profile.education.location }}</p>
+        <p class="card__period">{{ profile.education.period }}</p>
+        <h4 class="card__subtitle card__subtitle--spaced">Selected courses</h4>
+        <div class="chips chips--dense">
+          @for (c of profile.education.courses; track c) {
+            <span class="chip chip--muted">{{ c }}</span>
+          }
+        </div>
+      </article>
+
+      @if (profile.priorEducation.length) {
+        <h3 class="about__sub about__sub--edu">Earlier education</h3>
+        <div class="edu-prior">
+          @for (e of profile.priorEducation; track e.school + e.period) {
+            <article class="card card--compact">
+              <h4 class="card__title card__title--sm">{{ e.school }}</h4>
+              <p class="card__stack">{{ e.credential }}</p>
+              <p class="card__period card__period--inline">{{ e.period }}</p>
+            </article>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="section" aria-labelledby="cert-title">
+      <h2 id="cert-title" class="section__title">Achievements & certifications</h2>
+      <ul class="cert-list">
+        @for (c of profile.certifications; track c.title + c.issuer + (c.date ?? '') + (c.url ?? '')) {
+          <li class="card card--cert">
+            <p class="card__title card__title--sm">
+              @if (c.url) {
+                <a [href]="c.url" target="_blank" rel="noopener noreferrer" class="card__title-link">{{ c.title }}</a>
+              } @else {
+                {{ c.title }}
+              }
+            </p>
+            <p class="card__meta-line">
+              {{ c.issuer }}
+              @if (c.date) {
+                <span> · {{ c.date }}</span>
+              }
+            </p>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section id="contact" class="section section--contact" aria-labelledby="contact-title">
+      <h2 id="contact-title" class="section__title">Contact</h2>
+      <p class="section__text">{{ profile.connectBlurb }}</p>
+      <ul class="contact-list">
+        <li>
+          <span class="contact-list__label">Phone</span>
+          <a [href]="phoneTel">{{ profile.contact.phone }}</a>
+        </li>
+        <li>
+          <span class="contact-list__label">Email</span>
+          <a [href]="'mailto:' + profile.contact.email">{{ profile.contact.email }}</a>
+        </li>
+        <li>
+          <span class="contact-list__label">GitHub</span>
+          <a [href]="profile.contact.github" target="_blank" rel="noopener noreferrer">github.com/AansRehman</a>
+        </li>
+        <li>
+          <span class="contact-list__label">LinkedIn</span>
+          <a [href]="profile.contact.linkedin" target="_blank" rel="noopener noreferrer">Profile</a>
+        </li>
+      </ul>
+    </section>
+    }
+  }
+</div>
