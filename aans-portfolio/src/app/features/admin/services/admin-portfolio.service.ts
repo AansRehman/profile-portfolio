@@ -15,6 +15,8 @@ import type {
   ProjectAdmin,
   ProjectWriteBody,
   SkillCategoryWriteBody,
+  SocialLinkAdmin,
+  SocialLinkWriteBody,
   UniversityEducationBody,
 } from '../models/admin-api.model';
 
@@ -112,5 +114,21 @@ export class AdminPortfolioService {
 
   replaceSkills(body: SkillCategoryWriteBody[]): Observable<void> {
     return this.http.put<void>(`${this.base}/skills`, body);
+  }
+
+  listSocialLinks(): Observable<SocialLinkAdmin[]> {
+    return this.http.get<SocialLinkAdmin[]>(`${this.base}/social-links`);
+  }
+
+  createSocialLink(body: SocialLinkWriteBody): Observable<SocialLinkAdmin> {
+    return this.http.post<SocialLinkAdmin>(`${this.base}/social-links`, body);
+  }
+
+  updateSocialLink(id: number, body: SocialLinkWriteBody): Observable<SocialLinkAdmin> {
+    return this.http.put<SocialLinkAdmin>(`${this.base}/social-links/${id}`, body);
+  }
+
+  deleteSocialLink(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/social-links/${id}`);
   }
 }

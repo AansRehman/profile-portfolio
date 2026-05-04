@@ -12,6 +12,7 @@ public record ProfileResponse(
     List<String> journeyNotes,
     String connectBlurb,
     ContactDto contact,
+    List<SocialLinkDto> socialLinks,
     EducationDto education,
     List<PriorEducationDto> priorEducation,
     List<ExperienceDto> experience,

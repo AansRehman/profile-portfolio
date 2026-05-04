@@ -12,6 +12,8 @@ import com.aans.portfolio.models.ProfileResponse;
 import com.aans.portfolio.models.ProjectAdminDto;
 import com.aans.portfolio.models.ProjectWriteRequest;
 import com.aans.portfolio.models.SkillCategoryWriteRequest;
+import com.aans.portfolio.models.SocialLinkAdminDto;
+import com.aans.portfolio.models.SocialLinkWriteRequest;
 import com.aans.portfolio.models.UniversityEducationUpdateRequest;
 import com.aans.portfolio.service.PortfolioAdminService;
 import com.aans.portfolio.service.PortfolioReadService;
@@ -143,5 +145,26 @@ public class AdminPortfolioController {
   @PutMapping("/skills")
   public void replaceSkills(@Valid @RequestBody List<SkillCategoryWriteRequest> body) {
     portfolioAdminService.replaceSkillCategories(body);
+  }
+
+  @GetMapping("/social-links")
+  public List<SocialLinkAdminDto> listSocialLinks() {
+    return portfolioAdminService.listSocialLinks();
+  }
+
+  @PostMapping("/social-links")
+  public SocialLinkAdminDto createSocialLink(@Valid @RequestBody SocialLinkWriteRequest body) {
+    return portfolioAdminService.createSocialLink(body);
+  }
+
+  @PutMapping("/social-links/{id}")
+  public SocialLinkAdminDto updateSocialLink(
+      @PathVariable long id, @Valid @RequestBody SocialLinkWriteRequest body) {
+    return portfolioAdminService.updateSocialLink(id, body);
+  }
+
+  @DeleteMapping("/social-links/{id}")
+  public void deleteSocialLink(@PathVariable long id) {
+    portfolioAdminService.deleteSocialLink(id);
   }
 }

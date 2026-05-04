@@ -7,6 +7,7 @@ import com.aans.portfolio.entities.ExperienceEntry;
 import com.aans.portfolio.entities.PortfolioProject;
 import com.aans.portfolio.entities.PriorEducationEntry;
 import com.aans.portfolio.entities.ProfileCore;
+import com.aans.portfolio.entities.SocialLinkEntry;
 import com.aans.portfolio.entities.SkillCategory;
 import com.aans.portfolio.entities.SkillItem;
 import com.aans.portfolio.entities.UniversityEducation;
@@ -16,6 +17,7 @@ import com.aans.portfolio.repo.ExperienceEntryRepository;
 import com.aans.portfolio.repo.PortfolioProjectRepository;
 import com.aans.portfolio.repo.PriorEducationRepository;
 import com.aans.portfolio.repo.ProfileCoreRepository;
+import com.aans.portfolio.repo.SocialLinkRepository;
 import com.aans.portfolio.repo.SkillCategoryRepository;
 import com.aans.portfolio.repo.UniversityEducationRepository;
 import com.aans.portfolio.models.CertificationAdminDto;
@@ -28,6 +30,8 @@ import com.aans.portfolio.models.ProfileCoreUpdateRequest;
 import com.aans.portfolio.models.ProjectAdminDto;
 import com.aans.portfolio.models.ProjectWriteRequest;
 import com.aans.portfolio.models.SkillCategoryWriteRequest;
+import com.aans.portfolio.models.SocialLinkAdminDto;
+import com.aans.portfolio.models.SocialLinkWriteRequest;
 import com.aans.portfolio.models.UniversityEducationUpdateRequest;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,6 +53,7 @@ public class PortfolioAdminService {
   private final SkillCategoryRepository skillCategoryRepository;
   private final PortfolioProjectRepository portfolioProjectRepository;
   private final CertificationRepository certificationRepository;
+  private final SocialLinkRepository socialLinkRepository;
 
   @Transactional
   public void updateCore(ProfileCoreUpdateRequest req) {
@@ -226,6 +231,37 @@ public class PortfolioAdminService {
     certificationRepository.deleteById(id);
   }
 
+  public List<SocialLinkAdminDto> listSocialLinks() {
+    return socialLinkRepository.findAllByOrderByIdAsc().stream().map(this::toSocialAdmin).toList();
+  }
+
+  @Transactional
+  public SocialLinkAdminDto createSocialLink(SocialLinkWriteRequest req) {
+    SocialLinkEntry e = new SocialLinkEntry();
+    e.setLabel(req.label().trim());
+    e.setUrl(normalizeSocialUrl(req.url()));
+    return toSocialAdmin(socialLinkRepository.save(e));
+  }
+
+  @Transactional
+  public SocialLinkAdminDto updateSocialLink(long id, SocialLinkWriteRequest req) {
+    SocialLinkEntry e =
+        socialLinkRepository
+            .findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    e.setLabel(req.label().trim());
+    e.setUrl(normalizeSocialUrl(req.url()));
+    return toSocialAdmin(socialLinkRepository.save(e));
+  }
+
+  @Transactional
+  public void deleteSocialLink(long id) {
+    if (!socialLinkRepository.existsById(id)) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+    }
+    socialLinkRepository.deleteById(id);
+  }
+
   @Transactional
   public void replaceSkillCategories(List<SkillCategoryWriteRequest> categories) {
     skillCategoryRepository.deleteAll();
@@ -313,6 +349,19 @@ public class PortfolioAdminService {
   private static String normalizeCertUrl(String raw) {
     if (raw == null || raw.isBlank()) return null;
     String t = raw.trim();
+    if (!t.regionMatches(true, 0, "http://", 0, 7)
+        && !t.regionMatches(true, 0, "https://", 0, 8)) {
+      t = "https://" + t;
+    }
+    return t;
+  }
+
+  private SocialLinkAdminDto toSocialAdmin(SocialLinkEntry s) {
+    return new SocialLinkAdminDto(s.getId(), s.getLabel().trim(), s.getUrl().trim());
+  }
+
+  private static String normalizeSocialUrl(String raw) {
+    String t = raw == null ? "" : raw.trim();
     if (!t.regionMatches(true, 0, "http://", 0, 7)
         && !t.regionMatches(true, 0, "https://", 0, 8)) {
       t = "https://" + t;

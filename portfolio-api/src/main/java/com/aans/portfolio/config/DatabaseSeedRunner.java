@@ -8,6 +8,7 @@ import com.aans.portfolio.entities.ExperienceEntry;
 import com.aans.portfolio.entities.PortfolioProject;
 import com.aans.portfolio.entities.PriorEducationEntry;
 import com.aans.portfolio.entities.ProfileCore;
+import com.aans.portfolio.entities.SocialLinkEntry;
 import com.aans.portfolio.entities.Role;
 import com.aans.portfolio.entities.SkillCategory;
 import com.aans.portfolio.entities.SkillItem;
@@ -19,6 +20,7 @@ import com.aans.portfolio.repo.ExperienceEntryRepository;
 import com.aans.portfolio.repo.PortfolioProjectRepository;
 import com.aans.portfolio.repo.PriorEducationRepository;
 import com.aans.portfolio.repo.ProfileCoreRepository;
+import com.aans.portfolio.repo.SocialLinkRepository;
 import com.aans.portfolio.repo.SkillCategoryRepository;
 import com.aans.portfolio.repo.UniversityEducationRepository;
 import java.util.ArrayList;
@@ -45,6 +47,7 @@ public class DatabaseSeedRunner implements CommandLineRunner {
   private final SkillCategoryRepository skillCategoryRepository;
   private final PortfolioProjectRepository portfolioProjectRepository;
   private final CertificationRepository certificationRepository;
+  private final SocialLinkRepository socialLinkRepository;
 
   @Override
   @Transactional
@@ -73,6 +76,9 @@ public class DatabaseSeedRunner implements CommandLineRunner {
     core.setGithub("https://github.com/AansRehman");
     core.setLinkedin("https://www.linkedin.com/in/aans-rehman-khan-229061223");
     profileCoreRepository.save(core);
+
+    socialLinkRepository.save(socialLink("GitHub", core.getGithub()));
+    socialLinkRepository.save(socialLink("LinkedIn", core.getLinkedin()));
 
     addAbout(
         AboutSection.ABOUT_ME,
@@ -318,5 +324,12 @@ public class DatabaseSeedRunner implements CommandLineRunner {
     c.setDateAwarded(date);
     c.setCertificateUrl(certificateUrl);
     return c;
+  }
+
+  private SocialLinkEntry socialLink(String label, String url) {
+    SocialLinkEntry s = new SocialLinkEntry();
+    s.setLabel(label);
+    s.setUrl(url);
+    return s;
   }
 }

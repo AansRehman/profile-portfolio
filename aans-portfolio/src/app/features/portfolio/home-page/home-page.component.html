@@ -174,14 +174,12 @@
           <span class="contact-list__label">Email</span>
           <a [href]="'mailto:' + profile.contact.email">{{ profile.contact.email }}</a>
         </li>
-        <li>
-          <span class="contact-list__label">GitHub</span>
-          <a [href]="profile.contact.github" target="_blank" rel="noopener noreferrer">github.com/AansRehman</a>
-        </li>
-        <li>
-          <span class="contact-list__label">LinkedIn</span>
-          <a [href]="profile.contact.linkedin" target="_blank" rel="noopener noreferrer">Profile</a>
-        </li>
+        @for (s of profile.socialLinks; track s.label + s.url) {
+          <li>
+            <span class="contact-list__label">{{ s.label }}</span>
+            <a [href]="s.url" target="_blank" rel="noopener noreferrer">{{ s.url }}</a>
+          </li>
+        }
       </ul>
     </section>
     }

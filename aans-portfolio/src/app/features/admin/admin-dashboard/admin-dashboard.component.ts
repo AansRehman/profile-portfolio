@@ -26,6 +26,7 @@ import type {
   PriorEducationAdmin,
   ProjectAdmin,
   SkillCategoryWriteBody,
+  SocialLinkAdmin,
 } from '../models/admin-api.model';
 
 function linesFromText(raw: string): string[] {
@@ -74,11 +75,13 @@ export class AdminDashboardComponent implements OnInit {
   readonly priorEducation = signal<PriorEducationAdmin[]>([]);
   readonly projects = signal<ProjectAdmin[]>([]);
   readonly certifications = signal<CertificationAdmin[]>([]);
+  readonly socialLinksRows = signal<SocialLinkAdmin[]>([]);
 
   readonly experienceEditingId = signal<number | null>(null);
   readonly priorEditingId = signal<number | null>(null);
   readonly projectEditingId = signal<number | null>(null);
   readonly certEditingId = signal<number | null>(null);
+  readonly socialEditingId = signal<number | null>(null);
 
   readonly experienceSubmitLabel = computed(() =>
     this.experienceEditingId() != null ? 'Save experience' : 'Add experience',
@@ -92,12 +95,25 @@ export class AdminDashboardComponent implements OnInit {
   readonly certSubmitLabel = computed(() =>
     this.certEditingId() != null ? 'Save certification' : 'Add certification',
   );
+  readonly socialSubmitLabel = computed(() =>
+    this.socialEditingId() != null ? 'Save social link' : 'Add social link',
+  );
 
   readonly experienceModalOpen = signal(false);
   readonly priorEducationModalOpen = signal(false);
   readonly projectModalOpen = signal(false);
   readonly certModalOpen = signal(false);
+  readonly socialModalOpen = signal(false);
   readonly skillCategoryModalOpen = signal(false);
+
+  readonly socialForm = this.fb.nonNullable.group({
+    label: ['', Validators.required],
+    url: ['', Validators.required],
+  });
+
+  /** Kept for PATCH /core when saving name/phone/email (GitHub / LinkedIn live under Social links + DB fallback). */
+  private coreMirrorGithub = '';
+  private coreMirrorLinkedin = '';
 
   readonly skillCategoryModalForm = this.fb.nonNullable.group({
     title: ['', Validators.required],
@@ -117,8 +133,6 @@ export class AdminDashboardComponent implements OnInit {
     connectBlurb: ['', Validators.required],
     phone: ['', Validators.required],
     email: ['', Validators.required],
-    github: ['', Validators.required],
-    linkedin: ['', Validators.required],
   });
 
   readonly universityForm = this.fb.nonNullable.group({
@@ -203,6 +217,10 @@ export class AdminDashboardComponent implements OnInit {
       this.cancelSkillCategoryModal();
       return;
     }
+    if (this.socialModalOpen()) {
+      this.cancelSocialEdit();
+      return;
+    }
     if (this.certModalOpen()) {
       this.cancelCertEdit();
       return;
@@ -238,6 +256,11 @@ export class AdminDashboardComponent implements OnInit {
   openCertAddModal(): void {
     this.cancelCertEdit();
     this.certModalOpen.set(true);
+  }
+
+  openSocialAddModal(): void {
+    this.cancelSocialEdit();
+    this.socialModalOpen.set(true);
   }
 
   openSkillCategoryModal(): void {
@@ -286,6 +309,12 @@ export class AdminDashboardComponent implements OnInit {
     }
   }
 
+  backdropCloseSocial(event: MouseEvent): void {
+    if (event.target === event.currentTarget) {
+      this.cancelSocialEdit();
+    }
+  }
+
   backdropCloseCert(event: MouseEvent): void {
     if (event.target === event.currentTarget) {
       this.cancelCertEdit();
@@ -317,16 +346,18 @@ export class AdminDashboardComponent implements OnInit {
       prior: this.adminApi.listPriorEducation(),
       projects: this.adminApi.listProjects(),
       certs: this.adminApi.listCertifications(),
+      socialLinks: this.adminApi.listSocialLinks(),
     })
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: ({ profile, experiences, prior, projects, certs }) => {
+        next: ({ profile, experiences, prior, projects, certs, socialLinks }) => {
           this.apiMsg.set(null);
           this.patchFormsFromProfile(profile);
           this.experiences.set(experiences);
           this.priorEducation.set(prior);
           this.projects.set(projects);
           this.certifications.set(certs);
+          this.socialLinksRows.set(socialLinks);
         },
         error: () =>
           this.apiMsg.set(
@@ -338,6 +369,8 @@ export class AdminDashboardComponent implements OnInit {
   private patchFormsFromProfile(p: AdminProfile): void {
     this.hydratingFromServer = true;
     try {
+      this.coreMirrorGithub = p.contact.github ?? '';
+      this.coreMirrorLinkedin = p.contact.linkedin ?? '';
       this.coreForm.patchValue({
         name: p.name,
         headline: p.headline,
@@ -345,8 +378,6 @@ export class AdminDashboardComponent implements OnInit {
         connectBlurb: p.connectBlurb,
         phone: p.contact.phone,
         email: p.contact.email,
-        github: p.contact.github,
-        linkedin: p.contact.linkedin,
       });
       this.aboutTextsForm.patchValue({
         aboutMe: p.aboutMe.join('\n'),
@@ -385,8 +416,6 @@ export class AdminDashboardComponent implements OnInit {
       connectBlurb: v.connectBlurb.trim(),
       phone: v.phone.trim(),
       email: v.email.trim(),
-      github: v.github.trim(),
-      linkedin: v.linkedin.trim(),
     });
   }
 
@@ -527,8 +556,8 @@ export class AdminDashboardComponent implements OnInit {
         contact: {
           phone: v.phone,
           email: v.email,
-          github: v.github,
-          linkedin: v.linkedin,
+          github: this.coreMirrorGithub,
+          linkedin: this.coreMirrorLinkedin,
         },
       })
       .subscribe({
@@ -853,6 +882,55 @@ export class AdminDashboardComponent implements OnInit {
         this.loadAll();
       },
       error: () => this.apiMsg.set('Failed to delete certification.'),
+    });
+  }
+
+  submitSocialLink(): void {
+    if (this.socialForm.invalid) return;
+    const v = this.socialForm.getRawValue();
+    const urlNorm = this.normalizeOptionalExternalUrl(v.url);
+    if (!urlNorm) {
+      this.apiMsg.set('Enter a URL for the social link.');
+      return;
+    }
+    const body = {
+      label: v.label.trim(),
+      url: urlNorm,
+    };
+    const id = this.socialEditingId();
+    const req =
+      id != null ? this.adminApi.updateSocialLink(id, body) : this.adminApi.createSocialLink(body);
+    req.subscribe({
+      next: () => {
+        this.apiMsg.set(null);
+        this.cancelSocialEdit();
+        this.loadAll();
+      },
+      error: () =>
+        this.apiMsg.set(id != null ? 'Failed to update social link.' : 'Failed to create social link.'),
+    });
+  }
+
+  editSocialLink(row: SocialLinkAdmin): void {
+    this.socialEditingId.set(row.id);
+    this.socialForm.patchValue({ label: row.label, url: row.url }, { emitEvent: false });
+    this.socialModalOpen.set(true);
+  }
+
+  cancelSocialEdit(): void {
+    this.socialEditingId.set(null);
+    this.socialForm.reset();
+    this.socialModalOpen.set(false);
+  }
+
+  deleteSocialLink(id: number): void {
+    this.adminApi.deleteSocialLink(id).subscribe({
+      next: () => {
+        this.apiMsg.set(null);
+        if (this.socialEditingId() === id) this.cancelSocialEdit();
+        this.loadAll();
+      },
+      error: () => this.apiMsg.set('Failed to delete social link.'),
     });
   }
 }

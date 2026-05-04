@@ -28,6 +28,10 @@ export const PROFILE: Profile = {
     github: 'https://github.com/AansRehman',
     linkedin: 'https://www.linkedin.com/in/aans-rehman-khan-229061223',
   },
+  socialLinks: [
+    { label: 'GitHub', url: 'https://github.com/AansRehman' },
+    { label: 'LinkedIn', url: 'https://www.linkedin.com/in/aans-rehman-khan-229061223' },
+  ],
   education: {
     school: 'National University of Computer and Emerging Sciences (FAST‑NUCES)',
     degree: 'BS Software Engineering',

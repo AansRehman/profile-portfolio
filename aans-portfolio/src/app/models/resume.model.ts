@@ -5,6 +5,11 @@ export interface ContactLinks {
   linkedin: string;
 }
 
+export interface SocialLink {
+  label: string;
+  url: string;
+}
+
 export interface Education {
   school: string;
   degree: string;
@@ -57,6 +62,8 @@ export interface Profile {
   journeyNotes: string[];
   connectBlurb: string;
   contact: ContactLinks;
+  /** Shown after phone & email; from admin social links or legacy GitHub / LinkedIn on profile core when empty */
+  socialLinks: SocialLink[];
   education: Education;
   priorEducation: PriorEducation[];
   experience: Experience[];

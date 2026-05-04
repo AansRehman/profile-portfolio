@@ -6,25 +6,21 @@ import com.aans.portfolio.entities.CertificationEntry;
 import com.aans.portfolio.entities.ExperienceEntry;
 import com.aans.portfolio.entities.PortfolioProject;
 import com.aans.portfolio.entities.ProfileCore;
+import com.aans.portfolio.entities.SocialLinkEntry;
 import com.aans.portfolio.entities.SkillCategory;
 import com.aans.portfolio.entities.SkillItem;
 import com.aans.portfolio.entities.UniversityEducation;
-import com.aans.portfolio.repo.AboutLineRepository;
-import com.aans.portfolio.repo.CertificationRepository;
-import com.aans.portfolio.repo.ExperienceEntryRepository;
-import com.aans.portfolio.repo.PortfolioProjectRepository;
-import com.aans.portfolio.repo.PriorEducationRepository;
-import com.aans.portfolio.repo.ProfileCoreRepository;
-import com.aans.portfolio.repo.SkillCategoryRepository;
-import com.aans.portfolio.repo.UniversityEducationRepository;
+import com.aans.portfolio.repo.*;
 import com.aans.portfolio.models.CertificationDto;
 import com.aans.portfolio.models.ContactDto;
 import com.aans.portfolio.models.EducationDto;
 import com.aans.portfolio.models.ExperienceDto;
 import com.aans.portfolio.models.PriorEducationDto;
 import com.aans.portfolio.models.ProfileResponse;
+import com.aans.portfolio.models.SocialLinkDto;
 import com.aans.portfolio.models.ProjectDto;
 import com.aans.portfolio.models.SkillCategoryDto;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -45,6 +41,7 @@ public class PortfolioReadService {
   private final SkillCategoryRepository skillCategoryRepository;
   private final PortfolioProjectRepository portfolioProjectRepository;
   private final CertificationRepository certificationRepository;
+  private final SocialLinkRepository socialLinkRepository;
 
   public ProfileResponse getPublicProfile() {
     ProfileCore core =
@@ -83,6 +80,8 @@ public class PortfolioReadService {
     List<CertificationDto> certs =
         certificationRepository.findAllByOrderByIdAsc().stream().map(this::toCertDto).toList();
 
+    List<SocialLinkDto> socialLinks = buildSocialLinks(core);
+
     return new ProfileResponse(
         core.getPersonName(),
         core.getHeadline(),
@@ -92,12 +91,34 @@ public class PortfolioReadService {
         journey,
         core.getConnectBlurb(),
         contact,
+        socialLinks,
         education,
         prior,
         experiences,
         skills,
         projects,
         certs);
+  }
+
+  private List<SocialLinkDto> buildSocialLinks(ProfileCore core) {
+    List<SocialLinkEntry> rows = socialLinkRepository.findAllByOrderByIdAsc();
+    if (!rows.isEmpty()) {
+      return rows.stream()
+          .map(s -> new SocialLinkDto(s.getLabel().trim(), s.getUrl().trim()))
+          .toList();
+    }
+    return fallbackSocialFromCore(core);
+  }
+
+  private static List<SocialLinkDto> fallbackSocialFromCore(ProfileCore core) {
+    List<SocialLinkDto> list = new ArrayList<>();
+    if (core.getGithub() != null && !core.getGithub().isBlank()) {
+      list.add(new SocialLinkDto("GitHub", core.getGithub().trim()));
+    }
+    if (core.getLinkedin() != null && !core.getLinkedin().isBlank()) {
+      list.add(new SocialLinkDto("LinkedIn", core.getLinkedin().trim()));
+    }
+    return List.copyOf(list);
   }
 
   private List<String> lines(AboutSection section) {

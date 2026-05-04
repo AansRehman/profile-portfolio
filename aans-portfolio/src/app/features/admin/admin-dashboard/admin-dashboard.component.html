@@ -28,6 +28,9 @@
         <li>
           <button type="button" class="dash__nav-link" (click)="scrollToSection('admin-form-core')">Core profile</button>
         </li>
+        <li>
+          <button type="button" class="dash__nav-link" (click)="scrollToSection('admin-section-social')">Social links</button>
+        </li>
         <li class="dash__nav-group-wrap">
           <span class="dash__nav-group" id="dash-nav-label-about">About</span>
           <ul class="dash__nav-sub" aria-labelledby="dash-nav-label-about">
@@ -88,7 +91,8 @@
   <section class="panel" id="admin-section-core">
     <h2>Core profile</h2>
     <p class="panel__hint">
-      Name, headline, summary, connect blurb, and contact links. Save is enabled only after something changes.
+      Name, headline, summary, connect blurb, plus phone and email. GitHub / LinkedIn and other social URLs are managed under
+      <strong>Social links</strong>. Save is enabled only after something changes.
     </p>
     <form id="admin-form-core" [formGroup]="coreForm" (ngSubmit)="saveCore()" class="stack-form">
       <label> Name <input type="text" formControlName="name" /> </label>
@@ -100,10 +104,86 @@
       </label>
       <label> Phone <input type="text" formControlName="phone" /> </label>
       <label> Email <input type="email" formControlName="email" /> </label>
-      <label> GitHub URL <input type="text" formControlName="github" /> </label>
-      <label> LinkedIn URL <input type="text" formControlName="linkedin" /> </label>
       <button type="submit" class="btn" [disabled]="isCoreSaveDisabled()">Save core</button>
     </form>
+  </section>
+
+  <section class="panel" id="admin-section-social">
+    <div class="panel-head-row">
+      <div>
+        <h2 class="panel-head-row__title">Social links</h2>
+        <p class="panel__hint panel-head-row__hint">
+          Buttons and labels shown on the public Contact section after phone and email (e.g. GitHub, LinkedIn, Twitter). Leave
+          the list empty to fall back to GitHub / LinkedIn stored on profile core until you add links here.
+        </p>
+      </div>
+      <button type="button" class="btn btn--panel-head" [disabled]="loading()" (click)="openSocialAddModal()">
+        Add social link
+      </button>
+    </div>
+    @if (socialEditingId(); as sid) {
+      <p class="panel__hint">Editing id {{ sid }}</p>
+    }
+    <div class="table-wrap">
+      <table class="social-table cert-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Label</th>
+            <th scope="col" class="cert-url-col">URL</th>
+            <th><span class="visually-hidden">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of socialLinksRows(); track row.id) {
+            <tr>
+              <td>{{ row.id }}</td>
+              <td>{{ row.label }}</td>
+              <td class="cert-url-col">
+                <a class="dash__external" [href]="row.url" [attr.title]="row.url" target="_blank" rel="noopener noreferrer">{{ row.url }}</a>
+              </td>
+              <td class="nowrap">
+                <div class="row-actions" role="group" [attr.aria-label]="'Actions for social link: ' + row.label">
+                  <button type="button" class="row-action-btn" title="Edit" aria-label="Edit social link row" (click)="editSocialLink(row)">
+                    <svg class="row-action-btn__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path
+                        d="M17 3a2.828 2.828 0 1 1 4 4L8 21H4v-4L17 3z"
+                        stroke="currentColor"
+                        stroke-width="1.75"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    class="row-action-btn row-action-btn--danger"
+                    title="Delete"
+                    aria-label="Delete social link row"
+                    (click)="deleteSocialLink(row.id)"
+                  >
+                    <svg class="row-action-btn__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M3 6h18" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
+                      <path
+                        d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"
+                        stroke="currentColor"
+                        stroke-width="1.75"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                      <path d="M10 11v7M14 11v7" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      @if (socialLinksRows().length === 0) {
+        <p class="dash__muted">No social links saved — site uses GitHub / LinkedIn fallback from profile core.</p>
+      }
+    </div>
   </section>
 
   <section class="panel" id="admin-section-about">
@@ -739,6 +819,31 @@
           <div class="admin-modal__actions admin-modal__actions--solo">
             <button type="button" class="btn-secondary" (click)="cancelSkillCategoryModal()">Cancel</button>
             <button type="submit" class="btn" [disabled]="skillCategoryModalForm.invalid">Add to list</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  @if (socialModalOpen()) {
+    <div class="admin-modal-backdrop" (click)="backdropCloseSocial($event)" role="presentation">
+      <div class="admin-modal admin-modal--social" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+        <header class="admin-modal__header">
+          <h2 id="social-modal-title">{{ socialEditingId() != null ? 'Edit social link' : 'Add social link' }}</h2>
+          <button type="button" class="admin-modal__close" (click)="cancelSocialEdit()" aria-label="Close">×</button>
+        </header>
+        <form [formGroup]="socialForm" (ngSubmit)="submitSocialLink()" class="admin-modal__body stack-form">
+          <label class="modal-field-label">
+            <span class="field-caption">Label<span class="req">*</span></span>
+            <input type="text" formControlName="label" placeholder="e.g. GitHub, LinkedIn, X" />
+          </label>
+          <label class="modal-field-label">
+            <span class="field-caption">URL<span class="req">*</span></span>
+            <input type="text" formControlName="url" placeholder="https://..." />
+          </label>
+          <div class="admin-modal__actions admin-modal__actions--full">
+            <button type="button" class="btn-secondary" (click)="cancelSocialEdit()">Cancel</button>
+            <button type="submit" class="btn" [disabled]="socialForm.invalid">{{ socialSubmitLabel() }}</button>
           </div>
         </form>
       </div>

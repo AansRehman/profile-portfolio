@@ -1,4 +1,4 @@
-import type { Profile } from '../../../models/resume.model';
+import type { Profile, SocialLink } from '../../../models/resume.model';
 
 /** Full profile JSON from GET /api/admin/profile (same shape as public). */
 export type AdminProfile = Profile;
@@ -28,6 +28,15 @@ export interface ProjectAdmin {
   period: string;
   demoUrl: string | null;
   bullets: string[];
+}
+
+export interface SocialLinkAdmin extends SocialLink {
+  id: number;
+}
+
+export interface SocialLinkWriteBody {
+  label: string;
+  url: string;
 }
 
 export interface CertificationAdmin {
