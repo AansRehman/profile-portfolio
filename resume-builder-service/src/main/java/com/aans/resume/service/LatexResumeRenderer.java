@@ -89,7 +89,7 @@ public class LatexResumeRenderer {
     }
     o.append("\\vspace{6pt}\n\\begin{cvparagraph}\n");
     o.append(tex(s));
-    o.append("\n\\end{cvparagraph}\n\\vspace{2pt}\n\n");
+    o.append("\n\\end{cvparagraph}\n\\vspace{2pt}\n");
   }
 
   private static void appendEducation(StringBuilder o, ResumeProfile p) {
@@ -101,32 +101,19 @@ public class LatexResumeRenderer {
       return;
     }
 
-    o.append("\\cvsection{EDUCATION}\n\n");
-    if (hasUni || hasPrior) {
-      o.append("\\begin{cvhonors}\n\n");
-      if (hasUni) {
-        o.append("\\cvhonor{ {\\bf ")
-            .append(tex(nz(edu.school())))
-            .append("}, \\textit{")
-            .append(tex(nz(edu.degree())))
-            .append("} | ")
-            .append(tex(nz(edu.location())))
-            .append("\\hspace{2.5em}}{")
-            .append(tex(nz(edu.period())))
-            .append("}\n\n");
-      }
-      if (hasPrior) {
-        for (PriorEducation pe : prior) {
-          o.append("\\cvhonor{ {\\bf ")
-              .append(tex(nz(pe.school())))
-              .append("}, \\textit{")
-              .append(tex(nz(pe.credential())))
-              .append("} }{")
-              .append(tex(nz(pe.period())))
-              .append("}\n\n");
-        }
-      }
-      o.append("\\end{cvhonors}\n\n");
+    o.append("\\cvsection{EDUCATION}\n");
+    if (hasUni) {
+      o.append("\\begin{cventries2}\n");
+      o.append("\\cventrynew\n    {{\\bf ")
+          .append(tex(nz(edu.school())))
+          .append("}, \\textit{")
+          .append(tex(nz(edu.degree())))
+          .append("} | ")
+          .append(tex(nz(edu.location())))
+          .append("}\n    {")
+          .append(tex(nz(edu.period())))
+          .append("}\n    {}\n");
+      o.append("\\end{cventries2}\n");
     }
 
     if (hasUni && edu.courses() != null && !edu.courses().isEmpty()) {
@@ -135,7 +122,21 @@ public class LatexResumeRenderer {
           edu.courses().stream()
               .map(LatexResumeRenderer::tex)
               .collect(Collectors.joining(", ")));
-      o.append(".\\\\}\n\\end{cvparagraph}\n\n");
+      o.append(".\\\\}\n\\end{cvparagraph}\n");
+    }
+
+    if (hasPrior) {
+      o.append("\\begin{cventries2}\n");
+      for (PriorEducation pe : prior) {
+        o.append("\\cventrynew\n    {{\\bf ")
+            .append(tex(nz(pe.school())))
+            .append("}, \\textit{")
+            .append(tex(nz(pe.credential())))
+            .append("}}\n    {")
+            .append(tex(nz(pe.period())))
+            .append("}\n    {}\n");
+      }
+      o.append("\\end{cventries2}\n");
     }
   }
 
@@ -144,7 +145,7 @@ public class LatexResumeRenderer {
     if (rows == null || rows.isEmpty()) {
       return;
     }
-    o.append("\\cvsection{EXPERIENCE}\n\n\\begin{cventries2}\n\n");
+    o.append("\\cvsection{EXPERIENCE}\n\\begin{cventries2}\n");
     for (Experience e : rows) {
       String title = experienceTitleLine(e);
       o.append("\\cventrynew\n    {")
@@ -158,9 +159,9 @@ public class LatexResumeRenderer {
         }
       }
       o.append("      \\end{cvitems}\n    }\n");
-      o.append("    \\vspace{0.35em}\n\n");
+      o.append("    \\vspace{0.35em}\n");
     }
-    o.append("\\end{cventries2}\n\n");
+    o.append("\\end{cventries2}\n");
   }
 
   /** Matches template: {@code Company | client, \\textnormal{\\textit{role}}}. */
@@ -179,7 +180,7 @@ public class LatexResumeRenderer {
     if (cats == null || cats.isEmpty()) {
       return;
     }
-    o.append("\\cvsection{SKILLS}\n\n\\begin{cvskills}\n\n");
+    o.append("\\cvsection{SKILLS}\n\\begin{cvskills}\n");
     for (SkillCategory sc : cats) {
       String items =
           sc.items() == null
@@ -189,9 +190,9 @@ public class LatexResumeRenderer {
           .append(tex(nz(sc.title())))
           .append("}\n    {")
           .append(items)
-          .append("}\n\n");
+          .append("}\n");
     }
-    o.append("\\end{cvskills}\n\n");
+    o.append("\\end{cvskills}\n");
   }
 
   private static void appendProjects(StringBuilder o, ResumeProfile p) {
@@ -199,7 +200,7 @@ public class LatexResumeRenderer {
     if (rows == null || rows.isEmpty()) {
       return;
     }
-    o.append("\\cvsection{PROJECTS}\n\n\\begin{cventries}\n\n");
+    o.append("\\cvsection{PROJECTS}\n\\begin{cventries}\n");
     for (Project pr : rows) {
       String title = tex(nz(pr.name())) + "\\textnormal{ | " + tex(nz(pr.stack())) + "}";
       o.append("\\cventry\n  {")
@@ -221,9 +222,9 @@ public class LatexResumeRenderer {
         }
       }
       o.append("    \\end{cvitems}\n  }\n");
-      o.append("  \\vspace{0.35em}\n\n");
+      o.append("  \\vspace{0.35em}\n");
     }
-    o.append("\\end{cventries}\n\n");
+    o.append("\\end{cventries}\n");
   }
 
   private static void appendCertifications(StringBuilder o, ResumeProfile p) {
@@ -231,7 +232,7 @@ public class LatexResumeRenderer {
     if (rows == null || rows.isEmpty()) {
       return;
     }
-    o.append("\\cvsection{Achievements \\& Certifications}\n\n\\begin{cventries}\n");
+    o.append("\\cvsection{Achievements \\& Certifications}\n\\begin{cventries}\n");
     for (Certification c : rows) {
       String date = nz(c.date());
       if (date.isBlank()) {
@@ -245,7 +246,7 @@ public class LatexResumeRenderer {
           .append("}\n    {}\n");
       o.append("    \\vspace{-0.35em}\n");
     }
-    o.append("\\end{cventries}\n\n");
+    o.append("\\end{cventries}\n");
   }
 
   private static NameParts splitName(String full) {
