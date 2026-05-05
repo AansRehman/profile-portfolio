@@ -415,16 +415,18 @@
 
 .table-col-include {
   width: 5.25rem;
-  text-align: center;
+  text-align: left;
   vertical-align: middle;
 }
 
 .table-include-label {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  gap: 0.4rem;
   cursor: pointer;
   min-height: 28px;
+  white-space: nowrap;
 
   input[type='checkbox'] {
     width: 16px;
@@ -436,6 +438,14 @@
   &:has(input:disabled) {
     opacity: 0.55;
     cursor: wait;
+  }
+
+  &--header {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-muted);
   }
 }
 

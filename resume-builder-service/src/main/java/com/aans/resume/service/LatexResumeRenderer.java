@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class LatexResumeRenderer {
+  private static final String SECTION_TIGHTEN = "\\vspace{0.35em}\n";
+  private static final String ENTRY_GAP = "\\vspace{0.5em}\n";
 
   public String render(ResumeProfile p) {
     StringBuilder o = new StringBuilder(20_000);
@@ -30,6 +32,9 @@ public class LatexResumeRenderer {
     o.append("\\colorlet{russell}{russell-black}\n");
     o.append("\\setbool{acvSectionColorHighlight}{false}\n");
     o.append("\\renewcommand{\\acvHeaderSocialSep}{\\quad\\textbar\\quad}\n\n");
+    // Balanced default spacing between major sections/content blocks.
+    o.append("\\renewcommand{\\acvSectionTopSkip}{0.9mm}\n");
+    o.append("\\renewcommand{\\acvSectionContentTopSkip}{0.8mm}\n\n");
 
     NameParts ns = splitName(p.name());
     o.append("\\name{\\bf{")
@@ -96,12 +101,12 @@ public class LatexResumeRenderer {
     Education edu = p.education();
     List<PriorEducation> prior = p.priorEducation();
     boolean hasUni = edu != null;
-    boolean hasPrior = prior != null && !prior.isEmpty();
+    boolean hasPrior = prior != null && prior.stream().anyMatch(LatexResumeRenderer::hasRenderablePrior);
     if (!hasUni && !hasPrior) {
       return;
     }
 
-    o.append("\\cvsection{EDUCATION}\n");
+    o.append("\\cvsection{EDUCATION}\n").append(SECTION_TIGHTEN);
     if (hasUni) {
       o.append("\\begin{cventries2}\n");
       o.append("\\cventrynew\n    {{\\bf ")
@@ -128,11 +133,17 @@ public class LatexResumeRenderer {
     if (hasPrior) {
       o.append("\\begin{cventries2}\n");
       for (PriorEducation pe : prior) {
-        o.append("\\cventrynew\n    {{\\bf ")
-            .append(tex(nz(pe.school())))
-            .append("}, \\textit{")
-            .append(tex(nz(pe.credential())))
-            .append("}}\n    {")
+        if (!hasRenderablePrior(pe)) {
+          continue;
+        }
+        o.append("\\cventrynew\n    {{\\bf ").append(tex(nz(pe.school())));
+        String credential = nz(pe.credential()).trim();
+        if (!credential.isBlank()) {
+          o.append("}, \\textit{").append(tex(credential)).append("}");
+        } else {
+          o.append("}");
+        }
+        o.append("}\n    {")
             .append(tex(nz(pe.period())))
             .append("}\n    {}\n");
       }
@@ -145,21 +156,31 @@ public class LatexResumeRenderer {
     if (rows == null || rows.isEmpty()) {
       return;
     }
-    o.append("\\cvsection{EXPERIENCE}\n\\begin{cventries2}\n");
-    for (Experience e : rows) {
+    o.append("\\cvsection{EXPERIENCE}\n").append(SECTION_TIGHTEN).append("\\begin{cventries2}\n");
+    for (int i = 0; i < rows.size(); i++) {
+      Experience e = rows.get(i);
       String title = experienceTitleLine(e);
+      List<String> bullets = normalizeLines(e.bullets());
       o.append("\\cventrynew\n    {")
           .append(title)
           .append("}\n    {")
           .append(tex(nz(e.period())))
-          .append("}\n    {\n      \\begin{cvitems}\n");
-      if (e.bullets() != null) {
-        for (String b : e.bullets()) {
-          o.append("        \\item {").append(tex(nz(b))).append("}\n");
+          .append("}\n    ");
+      if (bullets.isEmpty()) {
+        o.append("{}\n");
+      } else {
+        o.append("{\n      \\begin{cvitems}\n");
+        for (String b : bullets) {
+          o.append("        \\item {").append(tex(b)).append("}\n");
         }
+        o.append("      \\end{cvitems}\n    }\n");
       }
-      o.append("      \\end{cvitems}\n    }\n");
-      o.append("    \\vspace{0.35em}\n");
+      // Hard boundary so the next \cventrynew never joins this entry's last line.
+      o.append("\n");
+//      o.append("\n");
+      if (i < rows.size() - 1) {
+        o.append("    ").append(ENTRY_GAP);
+      }
     }
     o.append("\\end{cventries2}\n");
   }
@@ -180,7 +201,7 @@ public class LatexResumeRenderer {
     if (cats == null || cats.isEmpty()) {
       return;
     }
-    o.append("\\cvsection{SKILLS}\n\\begin{cvskills}\n");
+    o.append("\\cvsection{SKILLS}\n").append(SECTION_TIGHTEN).append("\\begin{cvskills}\n");
     for (SkillCategory sc : cats) {
       String items =
           sc.items() == null
@@ -200,31 +221,64 @@ public class LatexResumeRenderer {
     if (rows == null || rows.isEmpty()) {
       return;
     }
-    o.append("\\cvsection{PROJECTS}\n\\begin{cventries}\n");
-    for (Project pr : rows) {
+    o.append("\\cvsection{PROJECTS}\n").append(SECTION_TIGHTEN).append("\\begin{cventries}\n");
+    for (int i = 0; i < rows.size(); i++) {
+      Project pr = rows.get(i);
       String title = tex(nz(pr.name())) + "\\textnormal{ | " + tex(nz(pr.stack())) + "}";
+      List<String> items = normalizeLines(pr.bullets());
       o.append("\\cventry\n  {")
           .append(title)
           .append("}\n  {")
           .append(tex(nz(pr.period())))
-          .append("}\n  {\n    \\begin{cvitems}\n");
-      if (pr.demoUrl() != null && !pr.demoUrl().isBlank()) {
-        String u = pr.demoUrl().trim();
-        o.append("      \\item Live demo: \\href{")
-            .append(texUrl(u))
-            .append("}{")
-            .append(tex(u))
-            .append("}\n");
-      }
-      if (pr.bullets() != null) {
-        for (String b : pr.bullets()) {
-          o.append("      \\item {").append(tex(nz(b))).append("}\n");
+          .append("}\n  ");
+      String demoUrl = nz(pr.demoUrl()).trim();
+      boolean hasDemo = !demoUrl.isBlank();
+      if (items.isEmpty() && !hasDemo) {
+        o.append("{}\n");
+      } else {
+        o.append("{\n    \\begin{cvitems}\n");
+        if (hasDemo) {
+          o.append("      \\item {Live demo: \\href{")
+              .append(texUrl(demoUrl))
+              .append("}{")
+              .append(tex(demoUrl))
+              .append("}}\n");
         }
+        for (String b : items) {
+          o.append("      \\item {").append(tex(b)).append("}\n");
+        }
+        o.append("    \\end{cvitems}\n  }\n");
       }
-      o.append("    \\end{cvitems}\n  }\n");
-      o.append("  \\vspace{0.35em}\n");
+      o.append("\n");
+//      o.append("\n");
+      if (i < rows.size() - 1) {
+        o.append("  ").append(ENTRY_GAP);
+      }
     }
     o.append("\\end{cventries}\n");
+  }
+
+  private static List<String> normalizeLines(List<String> lines) {
+    if (lines == null || lines.isEmpty()) {
+      return new java.util.ArrayList<>();
+    }
+    List<String> out = new java.util.ArrayList<>();
+    for (String line : lines) {
+      String t = nz(line).trim();
+      if (!t.isBlank()) {
+        out.add(t);
+      }
+    }
+    return out;
+  }
+
+  private static boolean hasRenderablePrior(PriorEducation pe) {
+    if (pe == null) {
+      return false;
+    }
+    return !nz(pe.school()).trim().isBlank()
+        || !nz(pe.credential()).trim().isBlank()
+        || !nz(pe.period()).trim().isBlank();
   }
 
   private static void appendCertifications(StringBuilder o, ResumeProfile p) {
@@ -232,8 +286,11 @@ public class LatexResumeRenderer {
     if (rows == null || rows.isEmpty()) {
       return;
     }
-    o.append("\\cvsection{Achievements \\& Certifications}\n\\begin{cventries}\n");
-    for (Certification c : rows) {
+    o.append("\\cvsection{Achievements \\& Certifications}\n")
+        .append(SECTION_TIGHTEN)
+        .append("\\begin{cventries}\n");
+    for (int i = 0; i < rows.size(); i++) {
+      Certification c = rows.get(i);
       String date = nz(c.date());
       if (date.isBlank()) {
         date = "—";
@@ -244,7 +301,9 @@ public class LatexResumeRenderer {
           .append("}\n    {")
           .append(tex(date))
           .append("}\n    {}\n");
-      o.append("    \\vspace{-0.35em}\n");
+      if (i < rows.size() - 1) {
+        o.append("    \\vspace{-0.35em}\n");
+      }
     }
     o.append("\\end{cventries}\n");
   }

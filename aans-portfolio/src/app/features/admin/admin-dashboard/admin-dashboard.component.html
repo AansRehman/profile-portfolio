@@ -15,6 +15,14 @@
         }
         <span>{{ resumePdfBuilding() ? 'Building PDF…' : 'Build resume PDF' }}</span>
       </button>
+      <button
+        type="button"
+        class="dash__logout"
+        [disabled]="loading() || resumePdfBuilding()"
+        (click)="previewResumePdf()"
+      >
+        Preview resume
+      </button>
       <a routerLink="/">Public site</a>
       <button type="button" class="dash__logout" (click)="logout()">Sign out</button>
     </div>
@@ -164,7 +172,15 @@
             <th>Label</th>
             <th scope="col" class="cert-url-col">URL</th>
             <th scope="col" class="table-col-include" title="Whether this row is included in the generated resume PDF">
-              In resume
+              <label class="table-include-label table-include-label--header" title="Select all social links for resume">
+                <input
+                  type="checkbox"
+                  [checked]="areAllSocialIncluded()"
+                  [disabled]="loading() || isResumeIncludeBulkSaving('soc') || socialLinksRows().length === 0"
+                  (change)="toggleAllSocialResumeInclude($event)"
+                />
+                <span>In resume</span>
+              </label>
             </th>
             <th><span class="visually-hidden">Actions</span></th>
           </tr>
@@ -182,7 +198,7 @@
                   <input
                     type="checkbox"
                     [checked]="row.includeInResume"
-                    [disabled]="loading() || isResumeIncludeSaving('soc', row.id)"
+                    [disabled]="loading() || isResumeIncludeSaving('soc', row.id) || isResumeIncludeBulkSaving('soc')"
                     (change)="toggleSocialResumeInclude(row, $event)"
                   />
                   <span class="visually-hidden">Include in resume PDF</span>
@@ -311,7 +327,15 @@
               <th>Credential</th>
               <th>Period</th>
               <th scope="col" class="table-col-include" title="Included in resume PDF">
-                In resume
+                <label class="table-include-label table-include-label--header" title="Select all prior education rows">
+                  <input
+                    type="checkbox"
+                    [checked]="areAllPriorIncluded()"
+                    [disabled]="loading() || isResumeIncludeBulkSaving('prior') || priorEducation().length === 0"
+                    (change)="toggleAllPriorResumeInclude($event)"
+                  />
+                  <span>In resume</span>
+                </label>
               </th>
               <th><span class="visually-hidden">Actions</span></th>
             </tr>
@@ -328,7 +352,7 @@
                     <input
                       type="checkbox"
                       [checked]="p.includeInResume"
-                      [disabled]="loading() || isResumeIncludeSaving('prior', p.id)"
+                      [disabled]="loading() || isResumeIncludeSaving('prior', p.id) || isResumeIncludeBulkSaving('prior')"
                       (change)="togglePriorResumeInclude(p, $event)"
                     />
                     <span class="visually-hidden">Include in resume PDF</span>
@@ -418,7 +442,15 @@
             <th>Company</th>
             <th>Period</th>
             <th scope="col" class="table-col-include" title="Included in resume PDF">
-              In resume
+              <label class="table-include-label table-include-label--header" title="Select all experience rows">
+                <input
+                  type="checkbox"
+                  [checked]="areAllExperienceIncluded()"
+                  [disabled]="loading() || isResumeIncludeBulkSaving('exp') || experiences().length === 0"
+                  (change)="toggleAllExperienceResumeInclude($event)"
+                />
+                <span>In resume</span>
+              </label>
             </th>
             <th><span class="visually-hidden">Actions</span></th>
           </tr>
@@ -435,7 +467,7 @@
                   <input
                     type="checkbox"
                     [checked]="e.includeInResume"
-                    [disabled]="loading() || isResumeIncludeSaving('exp', e.id)"
+                    [disabled]="loading() || isResumeIncludeSaving('exp', e.id) || isResumeIncludeBulkSaving('exp')"
                     (change)="toggleExperienceResumeInclude(e, $event)"
                   />
                   <span class="visually-hidden">Include in resume PDF</span>
@@ -522,7 +554,15 @@
             <th>Stack</th>
             <th>Period</th>
             <th scope="col" class="table-col-include" title="Included in resume PDF">
-              In resume
+              <label class="table-include-label table-include-label--header" title="Select all project rows">
+                <input
+                  type="checkbox"
+                  [checked]="areAllProjectsIncluded()"
+                  [disabled]="loading() || isResumeIncludeBulkSaving('proj') || projects().length === 0"
+                  (change)="toggleAllProjectResumeInclude($event)"
+                />
+                <span>In resume</span>
+              </label>
             </th>
             <th><span class="visually-hidden">Actions</span></th>
           </tr>
@@ -539,7 +579,7 @@
                   <input
                     type="checkbox"
                     [checked]="p.includeInResume"
-                    [disabled]="loading() || isResumeIncludeSaving('proj', p.id)"
+                    [disabled]="loading() || isResumeIncludeSaving('proj', p.id) || isResumeIncludeBulkSaving('proj')"
                     (change)="toggleProjectResumeInclude(p, $event)"
                   />
                   <span class="visually-hidden">Include in resume PDF</span>
@@ -627,7 +667,15 @@
             <th>Date</th>
             <th scope="col" class="cert-url-col">Link</th>
             <th scope="col" class="table-col-include" title="Included in resume PDF">
-              In resume
+              <label class="table-include-label table-include-label--header" title="Select all certification rows">
+                <input
+                  type="checkbox"
+                  [checked]="areAllCertificationsIncluded()"
+                  [disabled]="loading() || isResumeIncludeBulkSaving('cert') || certifications().length === 0"
+                  (change)="toggleAllCertResumeInclude($event)"
+                />
+                <span>In resume</span>
+              </label>
             </th>
             <th><span class="visually-hidden">Actions</span></th>
           </tr>
@@ -657,7 +705,7 @@
                   <input
                     type="checkbox"
                     [checked]="c.includeInResume"
-                    [disabled]="loading() || isResumeIncludeSaving('cert', c.id)"
+                    [disabled]="loading() || isResumeIncludeSaving('cert', c.id) || isResumeIncludeBulkSaving('cert')"
                     (change)="toggleCertResumeInclude(c, $event)"
                   />
                   <span class="visually-hidden">Include in resume PDF</span>

@@ -14,7 +14,7 @@ import {
   FormGroup,
   Validators,
 } from '@angular/forms';
-import { forkJoin } from 'rxjs';
+import { Observable, forkJoin } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import { AuthService } from '../../../core/services/auth.service';
 import { AdminPortfolioService } from '../services/admin-portfolio.service';
@@ -58,6 +58,8 @@ export class AdminDashboardComponent implements OnInit {
 
   /** Row keys like `exp:3` while a resume-include PATCH is in flight. */
   readonly resumeIncludeSaving = signal<ReadonlySet<string>>(new Set());
+  /** Kinds currently running "select all" operation. */
+  readonly resumeIncludeBulkSaving = signal<ReadonlySet<ResumeIncludeKind>>(new Set());
 
   /** True when categories differ from last load/save baseline. */
   readonly skillsDirty = signal(false);
@@ -356,6 +358,14 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   buildResumePdf(): void {
+    this.buildResumePdfInternal(true);
+  }
+
+  previewResumePdf(): void {
+    this.buildResumePdfInternal(false);
+  }
+
+  private buildResumePdfInternal(download: boolean): void {
     if (this.resumePdfBuilding()) return;
     this.resumePdfSuccess.set(null);
     this.resumePdfBuilding.set(true);
@@ -371,15 +381,23 @@ export class AdminDashboardComponent implements OnInit {
             return;
           }
           this.apiMsg.set(null);
-          this.flashResumePdfSuccess('Resume PDF downloaded.');
+          this.flashResumePdfSuccess(download ? 'Resume PDF downloaded.' : 'Resume PDF opened in preview.');
           const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'resume.pdf';
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          setTimeout(() => URL.revokeObjectURL(url), 1200);
+          if (download) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'resume.pdf';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1200);
+            return;
+          }
+          const popup = window.open(url, '_blank', 'noopener,noreferrer');
+          if (!popup) {
+            this.apiMsg.set('Preview popup was blocked by browser. Please allow popups for this site.');
+          }
+          setTimeout(() => URL.revokeObjectURL(url), 30_000);
         },
         error: () =>
           this.apiMsg.set(
@@ -405,6 +423,150 @@ export class AdminDashboardComponent implements OnInit {
 
   isResumeIncludeSaving(kind: ResumeIncludeKind, id: number): boolean {
     return this.resumeIncludeSaving().has(this.resumeIncludeSavingKey(kind, id));
+  }
+
+  isResumeIncludeBulkSaving(kind: ResumeIncludeKind): boolean {
+    return this.resumeIncludeBulkSaving().has(kind);
+  }
+
+  private resumeIncludeBulkSavingStart(kind: ResumeIncludeKind): void {
+    this.resumeIncludeBulkSaving.update((prev) => new Set(prev).add(kind));
+  }
+
+  private resumeIncludeBulkSavingEnd(kind: ResumeIncludeKind): void {
+    this.resumeIncludeBulkSaving.update((prev) => {
+      const next = new Set(prev);
+      next.delete(kind);
+      return next;
+    });
+  }
+
+  areAllSocialIncluded(): boolean {
+    const rows = this.socialLinksRows();
+    return rows.length > 0 && rows.every((r) => r.includeInResume);
+  }
+
+  areAllPriorIncluded(): boolean {
+    const rows = this.priorEducation();
+    return rows.length > 0 && rows.every((r) => r.includeInResume);
+  }
+
+  areAllExperienceIncluded(): boolean {
+    const rows = this.experiences();
+    return rows.length > 0 && rows.every((r) => r.includeInResume);
+  }
+
+  areAllProjectsIncluded(): boolean {
+    const rows = this.projects();
+    return rows.length > 0 && rows.every((r) => r.includeInResume);
+  }
+
+  areAllCertificationsIncluded(): boolean {
+    const rows = this.certifications();
+    return rows.length > 0 && rows.every((r) => r.includeInResume);
+  }
+
+  toggleAllSocialResumeInclude(event: Event): void {
+    const includeInResume = (event.target as HTMLInputElement).checked;
+    const rows = this.socialLinksRows().filter((r) => r.includeInResume !== includeInResume);
+    this.applyBulkResumeInclude('soc', rows.length, () =>
+      rows.map((row) =>
+        this.adminApi.updateSocialLink(row.id, {
+          label: row.label,
+          url: row.url,
+          includeInResume,
+        }),
+      ),
+    );
+  }
+
+  toggleAllPriorResumeInclude(event: Event): void {
+    const includeInResume = (event.target as HTMLInputElement).checked;
+    const rows = this.priorEducation().filter((r) => r.includeInResume !== includeInResume);
+    this.applyBulkResumeInclude('prior', rows.length, () =>
+      rows.map((row) =>
+        this.adminApi.updatePriorEducation(row.id, {
+          school: row.school,
+          credential: row.credential,
+          period: row.period,
+          includeInResume,
+        }),
+      ),
+    );
+  }
+
+  toggleAllExperienceResumeInclude(event: Event): void {
+    const includeInResume = (event.target as HTMLInputElement).checked;
+    const rows = this.experiences().filter((r) => r.includeInResume !== includeInResume);
+    this.applyBulkResumeInclude('exp', rows.length, () =>
+      rows.map((row) =>
+        this.adminApi.updateExperience(row.id, {
+          company: row.company,
+          clientOrNote: row.clientOrNote ?? null,
+          role: row.role,
+          period: row.period,
+          bullets: row.bullets,
+          includeInResume,
+        }),
+      ),
+    );
+  }
+
+  toggleAllProjectResumeInclude(event: Event): void {
+    const includeInResume = (event.target as HTMLInputElement).checked;
+    const rows = this.projects().filter((r) => r.includeInResume !== includeInResume);
+    this.applyBulkResumeInclude('proj', rows.length, () =>
+      rows.map((row) =>
+        this.adminApi.updateProject(row.id, {
+          name: row.name,
+          stack: row.stack,
+          period: row.period,
+          demoUrl: row.demoUrl,
+          bullets: row.bullets,
+          includeInResume,
+        }),
+      ),
+    );
+  }
+
+  toggleAllCertResumeInclude(event: Event): void {
+    const includeInResume = (event.target as HTMLInputElement).checked;
+    const rows = this.certifications().filter((r) => r.includeInResume !== includeInResume);
+    this.applyBulkResumeInclude('cert', rows.length, () =>
+      rows.map((row) =>
+        this.adminApi.updateCertification(row.id, {
+          title: row.title,
+          issuer: row.issuer,
+          date: row.date,
+          url: row.url,
+          includeInResume,
+        }),
+      ),
+    );
+  }
+
+  private applyBulkResumeInclude(
+    kind: ResumeIncludeKind,
+    changedRowsCount: number,
+    makeRequests: () => Observable<unknown>[],
+  ): void {
+    if (changedRowsCount === 0) {
+      this.apiMsg.set(null);
+      return;
+    }
+    this.resumeIncludeBulkSavingStart(kind);
+    forkJoin(makeRequests())
+      .pipe(finalize(() => this.resumeIncludeBulkSavingEnd(kind)))
+      .subscribe({
+        next: () => {
+          this.apiMsg.set(null);
+          this.loadAll();
+        },
+        error: () => {
+          this.apiMsg.set('Failed to update include-in-resume for one or more rows.');
+          this.loadAll();
+        },
+      });
   }
 
   private resumeIncludeSavingStart(kind: ResumeIncludeKind, id: number): void {
