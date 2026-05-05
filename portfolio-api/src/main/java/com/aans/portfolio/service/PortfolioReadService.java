@@ -65,7 +65,13 @@ public class PortfolioReadService {
 
     List<PriorEducationDto> prior =
         priorEducationRepository.findAllByOrderByIdAsc().stream()
-            .map(p -> new PriorEducationDto(p.getSchool(), p.getCredential(), p.getPeriod()))
+            .map(
+                p ->
+                    new PriorEducationDto(
+                        p.getSchool(),
+                        p.getCredential(),
+                        p.getPeriod(),
+                        includeFlagOrDefault(p.getIncludeInResume())))
             .toList();
 
     List<ExperienceDto> experiences =
@@ -100,11 +106,45 @@ public class PortfolioReadService {
         certs);
   }
 
+  public ProfileResponse getResumeProfile() {
+    ProfileResponse all = getPublicProfile();
+    List<PriorEducationDto> prior =
+        all.priorEducation().stream().filter(PriorEducationDto::includeInResume).toList();
+    List<ExperienceDto> experiences =
+        all.experience().stream().filter(ExperienceDto::includeInResume).toList();
+    List<ProjectDto> projects = all.projects().stream().filter(ProjectDto::includeInResume).toList();
+    List<CertificationDto> certs =
+        all.certifications().stream().filter(CertificationDto::includeInResume).toList();
+    List<SocialLinkDto> social =
+        all.socialLinks().stream().filter(SocialLinkDto::includeInResume).toList();
+    return new ProfileResponse(
+        all.name(),
+        all.headline(),
+        all.summary(),
+        all.aboutMe(),
+        all.whatIBring(),
+        all.journeyNotes(),
+        all.connectBlurb(),
+        all.contact(),
+        social,
+        all.education(),
+        prior,
+        experiences,
+        all.skillCategories(),
+        projects,
+        certs);
+  }
+
   private List<SocialLinkDto> buildSocialLinks(ProfileCore core) {
     List<SocialLinkEntry> rows = socialLinkRepository.findAllByOrderByIdAsc();
     if (!rows.isEmpty()) {
       return rows.stream()
-          .map(s -> new SocialLinkDto(s.getLabel().trim(), s.getUrl().trim()))
+          .map(
+              s ->
+                  new SocialLinkDto(
+                      s.getLabel().trim(),
+                      s.getUrl().trim(),
+                      includeFlagOrDefault(s.getIncludeInResume())))
           .toList();
     }
     return fallbackSocialFromCore(core);
@@ -113,10 +153,10 @@ public class PortfolioReadService {
   private static List<SocialLinkDto> fallbackSocialFromCore(ProfileCore core) {
     List<SocialLinkDto> list = new ArrayList<>();
     if (core.getGithub() != null && !core.getGithub().isBlank()) {
-      list.add(new SocialLinkDto("GitHub", core.getGithub().trim()));
+      list.add(new SocialLinkDto("GitHub", core.getGithub().trim(), true));
     }
     if (core.getLinkedin() != null && !core.getLinkedin().isBlank()) {
-      list.add(new SocialLinkDto("LinkedIn", core.getLinkedin().trim()));
+      list.add(new SocialLinkDto("LinkedIn", core.getLinkedin().trim(), true));
     }
     return List.copyOf(list);
   }
@@ -133,7 +173,8 @@ public class PortfolioReadService {
         e.getClientNote(),
         e.getRoleTitle(),
         e.getPeriod(),
-        List.copyOf(e.getBullets()));
+        List.copyOf(e.getBullets()),
+        includeFlagOrDefault(e.getIncludeInResume()));
   }
 
   private SkillCategoryDto toSkillDto(SkillCategory c) {
@@ -147,7 +188,12 @@ public class PortfolioReadService {
   private ProjectDto toProjectDto(PortfolioProject p) {
     String demo = p.getDemoUrl() != null && !p.getDemoUrl().isBlank() ? p.getDemoUrl() : null;
     return new ProjectDto(
-        p.getName(), p.getStack(), p.getPeriod(), List.copyOf(p.getBullets()), demo);
+        p.getName(),
+        p.getStack(),
+        p.getPeriod(),
+        List.copyOf(p.getBullets()),
+        demo,
+        includeFlagOrDefault(p.getIncludeInResume()));
   }
 
   private CertificationDto toCertDto(CertificationEntry c) {
@@ -156,6 +202,11 @@ public class PortfolioReadService {
         c.getCertificateUrl() != null && !c.getCertificateUrl().isBlank()
             ? c.getCertificateUrl().trim()
             : null;
-    return new CertificationDto(c.getTitle(), c.getIssuer(), d, u);
+    return new CertificationDto(
+        c.getTitle(), c.getIssuer(), d, u, includeFlagOrDefault(c.getIncludeInResume()));
+  }
+
+  private static boolean includeFlagOrDefault(Boolean includeInResume) {
+    return includeInResume == null || includeInResume;
   }
 }

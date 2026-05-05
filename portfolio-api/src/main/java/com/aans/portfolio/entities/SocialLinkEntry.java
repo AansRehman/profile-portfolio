@@ -26,4 +26,7 @@ public class SocialLinkEntry {
 
   @Column(nullable = false, length = 2000)
   private String url;
+
+  @Column
+  private Boolean includeInResume = true;
 }

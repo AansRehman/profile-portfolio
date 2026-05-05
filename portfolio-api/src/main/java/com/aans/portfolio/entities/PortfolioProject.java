@@ -40,6 +40,9 @@ public class PortfolioProject {
   @Column(length = 800)
   private String demoUrl;
 
+  @Column
+  private Boolean includeInResume = true;
+
   @ElementCollection(fetch = FetchType.EAGER)
   @CollectionTable(name = "project_bullets", joinColumns = @JoinColumn(name = "project_id"))
   @OrderColumn(name = "line_idx")

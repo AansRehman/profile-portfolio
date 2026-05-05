@@ -29,6 +29,9 @@ import type {
   SocialLinkAdmin,
 } from '../models/admin-api.model';
 
+/** Keys for optimistic “saving include flag” disabling per table row */
+type ResumeIncludeKind = 'exp' | 'prior' | 'proj' | 'cert' | 'soc';
+
 function linesFromText(raw: string): string[] {
   return raw
     .split(/\r?\n/)
@@ -47,6 +50,14 @@ export class AdminDashboardComponent implements OnInit {
 
   readonly loading = signal(true);
   readonly apiMsg = signal<string | null>(null);
+
+  /** Build resume PDF in progress (separate from initial dashboard load). */
+  readonly resumePdfBuilding = signal(false);
+  readonly resumePdfSuccess = signal<string | null>(null);
+  private resumePdfSuccessTimer?: ReturnType<typeof setTimeout>;
+
+  /** Row keys like `exp:3` while a resume-include PATCH is in flight. */
+  readonly resumeIncludeSaving = signal<ReadonlySet<string>>(new Set());
 
   /** True when categories differ from last load/save baseline. */
   readonly skillsDirty = signal(false);
@@ -109,6 +120,7 @@ export class AdminDashboardComponent implements OnInit {
   readonly socialForm = this.fb.nonNullable.group({
     label: ['', Validators.required],
     url: ['', Validators.required],
+    includeInResume: [true],
   });
 
   /** Kept for PATCH /core when saving name/phone/email (GitHub / LinkedIn live under Social links + DB fallback). */
@@ -149,12 +161,14 @@ export class AdminDashboardComponent implements OnInit {
     role: ['', Validators.required],
     period: ['', Validators.required],
     bulletsText: ['', Validators.required],
+    includeInResume: [true],
   });
 
   readonly priorForm = this.fb.nonNullable.group({
     school: ['', Validators.required],
     credential: ['', Validators.required],
     period: ['', Validators.required],
+    includeInResume: [true],
   });
 
   readonly projectForm = this.fb.nonNullable.group({
@@ -163,6 +177,7 @@ export class AdminDashboardComponent implements OnInit {
     period: ['', Validators.required],
     demoUrl: [''],
     bulletsText: ['', Validators.required],
+    includeInResume: [true],
   });
 
   readonly certForm = this.fb.nonNullable.group({
@@ -170,6 +185,7 @@ export class AdminDashboardComponent implements OnInit {
     issuer: ['', Validators.required],
     date: [''],
     url: [''],
+    includeInResume: [true],
   });
 
   readonly skillForm = this.fb.group({
@@ -181,6 +197,11 @@ export class AdminDashboardComponent implements OnInit {
     private readonly fb: FormBuilder,
     readonly auth: AuthService,
   ) {
+    this.destroyRef.onDestroy(() => {
+      if (this.resumePdfSuccessTimer !== undefined) {
+        clearTimeout(this.resumePdfSuccessTimer);
+      }
+    });
     this.capturePersistBaselines();
     this.capturePriorDraftBaseline();
     this.captureSkillsBaseline();
@@ -332,6 +353,231 @@ export class AdminDashboardComponent implements OnInit {
       return;
     }
     el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  buildResumePdf(): void {
+    if (this.resumePdfBuilding()) return;
+    this.resumePdfSuccess.set(null);
+    this.resumePdfBuilding.set(true);
+    this.adminApi
+      .buildResumePdf()
+      .pipe(finalize(() => this.resumePdfBuilding.set(false)))
+      .subscribe({
+        next: (blob) => {
+          if (blob.size < 64) {
+            this.apiMsg.set(
+              'Resume PDF response was empty. Check resume-builder-service logs and MiKTeX / pdflatex.',
+            );
+            return;
+          }
+          this.apiMsg.set(null);
+          this.flashResumePdfSuccess('Resume PDF downloaded.');
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'resume.pdf';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1200);
+        },
+        error: () =>
+          this.apiMsg.set(
+            'Failed to build resume PDF. Ensure resume-builder-service is running, portfolio-api is up, MiKTeX is installed, and PDFLATEX_COMMAND is correct if needed.',
+          ),
+      });
+  }
+
+  private flashResumePdfSuccess(text: string): void {
+    if (this.resumePdfSuccessTimer !== undefined) {
+      clearTimeout(this.resumePdfSuccessTimer);
+    }
+    this.resumePdfSuccess.set(text);
+    this.resumePdfSuccessTimer = window.setTimeout(() => {
+      this.resumePdfSuccess.set(null);
+      this.resumePdfSuccessTimer = undefined;
+    }, 6000);
+  }
+
+  resumeIncludeSavingKey(kind: ResumeIncludeKind, id: number): string {
+    return `${kind}:${id}`;
+  }
+
+  isResumeIncludeSaving(kind: ResumeIncludeKind, id: number): boolean {
+    return this.resumeIncludeSaving().has(this.resumeIncludeSavingKey(kind, id));
+  }
+
+  private resumeIncludeSavingStart(kind: ResumeIncludeKind, id: number): void {
+    const key = this.resumeIncludeSavingKey(kind, id);
+    this.resumeIncludeSaving.update((prev) => new Set(prev).add(key));
+  }
+
+  private resumeIncludeSavingEnd(kind: ResumeIncludeKind, id: number): void {
+    const key = this.resumeIncludeSavingKey(kind, id);
+    this.resumeIncludeSaving.update((prev) => {
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
+  }
+
+  toggleExperienceResumeInclude(row: ExperienceAdmin, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const includeInResume = input.checked;
+    if (row.includeInResume === includeInResume) return;
+    const kind: ResumeIncludeKind = 'exp';
+    this.resumeIncludeSavingStart(kind, row.id);
+    this.adminApi
+      .updateExperience(row.id, {
+        company: row.company,
+        clientOrNote: row.clientOrNote ?? null,
+        role: row.role,
+        period: row.period,
+        bullets: row.bullets,
+        includeInResume,
+      })
+      .pipe(finalize(() => this.resumeIncludeSavingEnd(kind, row.id)))
+      .subscribe({
+        next: (updated) => {
+          this.experiences.update((list) =>
+            list.map((x) => (x.id === row.id ? { ...updated } : x)),
+          );
+          if (this.experienceEditingId() === row.id) {
+            this.experienceForm.patchValue({ includeInResume }, { emitEvent: false });
+          }
+          this.apiMsg.set(null);
+        },
+        error: () => {
+          input.checked = row.includeInResume;
+          this.apiMsg.set('Failed to update resume include for this experience.');
+        },
+      });
+  }
+
+  togglePriorResumeInclude(row: PriorEducationAdmin, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const includeInResume = input.checked;
+    if (row.includeInResume === includeInResume) return;
+    const kind: ResumeIncludeKind = 'prior';
+    this.resumeIncludeSavingStart(kind, row.id);
+    this.adminApi
+      .updatePriorEducation(row.id, {
+        school: row.school,
+        credential: row.credential,
+        period: row.period,
+        includeInResume,
+      })
+      .pipe(finalize(() => this.resumeIncludeSavingEnd(kind, row.id)))
+      .subscribe({
+        next: (updated) => {
+          this.priorEducation.update((list) =>
+            list.map((x) => (x.id === row.id ? { ...updated } : x)),
+          );
+          if (this.priorEditingId() === row.id) {
+            this.priorForm.patchValue({ includeInResume }, { emitEvent: false });
+          }
+          this.apiMsg.set(null);
+        },
+        error: () => {
+          input.checked = row.includeInResume;
+          this.apiMsg.set('Failed to update resume include for this prior education row.');
+        },
+      });
+  }
+
+  toggleProjectResumeInclude(row: ProjectAdmin, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const includeInResume = input.checked;
+    if (row.includeInResume === includeInResume) return;
+    const kind: ResumeIncludeKind = 'proj';
+    this.resumeIncludeSavingStart(kind, row.id);
+    this.adminApi
+      .updateProject(row.id, {
+        name: row.name,
+        stack: row.stack,
+        period: row.period,
+        demoUrl: row.demoUrl,
+        bullets: row.bullets,
+        includeInResume,
+      })
+      .pipe(finalize(() => this.resumeIncludeSavingEnd(kind, row.id)))
+      .subscribe({
+        next: (updated) => {
+          this.projects.update((list) =>
+            list.map((x) => (x.id === row.id ? { ...updated } : x)),
+          );
+          if (this.projectEditingId() === row.id) {
+            this.projectForm.patchValue({ includeInResume }, { emitEvent: false });
+          }
+          this.apiMsg.set(null);
+        },
+        error: () => {
+          input.checked = row.includeInResume;
+          this.apiMsg.set('Failed to update resume include for this project.');
+        },
+      });
+  }
+
+  toggleCertResumeInclude(row: CertificationAdmin, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const includeInResume = input.checked;
+    if (row.includeInResume === includeInResume) return;
+    const kind: ResumeIncludeKind = 'cert';
+    this.resumeIncludeSavingStart(kind, row.id);
+    this.adminApi
+      .updateCertification(row.id, {
+        title: row.title,
+        issuer: row.issuer,
+        date: row.date,
+        url: row.url,
+        includeInResume,
+      })
+      .pipe(finalize(() => this.resumeIncludeSavingEnd(kind, row.id)))
+      .subscribe({
+        next: (updated) => {
+          this.certifications.update((list) =>
+            list.map((x) => (x.id === row.id ? { ...updated } : x)),
+          );
+          if (this.certEditingId() === row.id) {
+            this.certForm.patchValue({ includeInResume }, { emitEvent: false });
+          }
+          this.apiMsg.set(null);
+        },
+        error: () => {
+          input.checked = row.includeInResume;
+          this.apiMsg.set('Failed to update resume include for this certification.');
+        },
+      });
+  }
+
+  toggleSocialResumeInclude(row: SocialLinkAdmin, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const includeInResume = input.checked;
+    if (row.includeInResume === includeInResume) return;
+    const kind: ResumeIncludeKind = 'soc';
+    this.resumeIncludeSavingStart(kind, row.id);
+    this.adminApi
+      .updateSocialLink(row.id, {
+        label: row.label,
+        url: row.url,
+        includeInResume,
+      })
+      .pipe(finalize(() => this.resumeIncludeSavingEnd(kind, row.id)))
+      .subscribe({
+        next: (updated) => {
+          this.socialLinksRows.update((list) =>
+            list.map((x) => (x.id === row.id ? { ...updated } : x)),
+          );
+          if (this.socialEditingId() === row.id) {
+            this.socialForm.patchValue({ includeInResume }, { emitEvent: false });
+          }
+          this.apiMsg.set(null);
+        },
+        error: () => {
+          input.checked = row.includeInResume;
+          this.apiMsg.set('Failed to update resume include for this social link.');
+        },
+      });
   }
 
   logout(): void {
@@ -658,6 +904,7 @@ export class AdminDashboardComponent implements OnInit {
       role: v.role,
       period: v.period,
       bullets,
+      includeInResume: v.includeInResume,
     };
     const id = this.experienceEditingId();
     const req =
@@ -684,6 +931,7 @@ export class AdminDashboardComponent implements OnInit {
         role: row.role,
         period: row.period,
         bulletsText: row.bullets.join('\n'),
+        includeInResume: row.includeInResume,
       },
       { emitEvent: false },
     );
@@ -692,7 +940,10 @@ export class AdminDashboardComponent implements OnInit {
 
   cancelExperienceEdit(): void {
     this.experienceEditingId.set(null);
-    this.experienceForm.reset();
+    this.experienceForm.reset(
+      { company: '', clientOrNote: '', role: '', period: '', bulletsText: '', includeInResume: true },
+      { emitEvent: false },
+    );
     this.experienceModalOpen.set(false);
   }
 
@@ -717,6 +968,7 @@ export class AdminDashboardComponent implements OnInit {
       school: v.school,
       credential: v.credential,
       period: v.period,
+      includeInResume: v.includeInResume,
     };
     const req =
       id != null
@@ -742,7 +994,10 @@ export class AdminDashboardComponent implements OnInit {
 
   cancelPriorEdit(): void {
     this.priorEditingId.set(null);
-    this.priorForm.reset({ school: '', credential: '', period: '' }, { emitEvent: false });
+    this.priorForm.reset(
+      { school: '', credential: '', period: '', includeInResume: true },
+      { emitEvent: false },
+    );
     this.capturePriorDraftBaseline();
     this.priorEducationModalOpen.set(false);
   }
@@ -775,6 +1030,7 @@ export class AdminDashboardComponent implements OnInit {
       period: v.period,
       demoUrl: v.demoUrl.trim() ? v.demoUrl.trim() : null,
       bullets,
+      includeInResume: v.includeInResume,
     };
     const id = this.projectEditingId();
     const req =
@@ -799,6 +1055,7 @@ export class AdminDashboardComponent implements OnInit {
         period: row.period,
         demoUrl: row.demoUrl ?? '',
         bulletsText: row.bullets.join('\n'),
+        includeInResume: row.includeInResume,
       },
       { emitEvent: false },
     );
@@ -807,7 +1064,10 @@ export class AdminDashboardComponent implements OnInit {
 
   cancelProjectEdit(): void {
     this.projectEditingId.set(null);
-    this.projectForm.reset();
+    this.projectForm.reset(
+      { name: '', stack: '', period: '', demoUrl: '', bulletsText: '', includeInResume: true },
+      { emitEvent: false },
+    );
     this.projectModalOpen.set(false);
   }
 
@@ -831,6 +1091,7 @@ export class AdminDashboardComponent implements OnInit {
       issuer: v.issuer,
       date: v.date.trim() ? v.date.trim() : null,
       url: urlNorm,
+      includeInResume: v.includeInResume,
     };
     const id = this.certEditingId();
     const req =
@@ -856,6 +1117,7 @@ export class AdminDashboardComponent implements OnInit {
         issuer: row.issuer,
         date: row.date ?? '',
         url: row.url ?? '',
+        includeInResume: row.includeInResume,
       },
       { emitEvent: false },
     );
@@ -870,7 +1132,10 @@ export class AdminDashboardComponent implements OnInit {
 
   cancelCertEdit(): void {
     this.certEditingId.set(null);
-    this.certForm.reset();
+    this.certForm.reset(
+      { title: '', issuer: '', date: '', url: '', includeInResume: true },
+      { emitEvent: false },
+    );
     this.certModalOpen.set(false);
   }
 
@@ -896,6 +1161,7 @@ export class AdminDashboardComponent implements OnInit {
     const body = {
       label: v.label.trim(),
       url: urlNorm,
+      includeInResume: v.includeInResume,
     };
     const id = this.socialEditingId();
     const req =
@@ -913,13 +1179,16 @@ export class AdminDashboardComponent implements OnInit {
 
   editSocialLink(row: SocialLinkAdmin): void {
     this.socialEditingId.set(row.id);
-    this.socialForm.patchValue({ label: row.label, url: row.url }, { emitEvent: false });
+    this.socialForm.patchValue(
+      { label: row.label, url: row.url, includeInResume: row.includeInResume },
+      { emitEvent: false },
+    );
     this.socialModalOpen.set(true);
   }
 
   cancelSocialEdit(): void {
     this.socialEditingId.set(null);
-    this.socialForm.reset();
+    this.socialForm.reset({ label: '', url: '', includeInResume: true }, { emitEvent: false });
     this.socialModalOpen.set(false);
   }
 

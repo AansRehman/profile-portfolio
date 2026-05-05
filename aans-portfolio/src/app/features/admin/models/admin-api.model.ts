@@ -12,6 +12,7 @@ export interface ExperienceAdmin {
   role: string;
   period: string;
   bullets: string[];
+  includeInResume: boolean;
 }
 
 export interface PriorEducationAdmin {
@@ -19,6 +20,7 @@ export interface PriorEducationAdmin {
   school: string;
   credential: string;
   period: string;
+  includeInResume: boolean;
 }
 
 export interface ProjectAdmin {
@@ -28,15 +30,18 @@ export interface ProjectAdmin {
   period: string;
   demoUrl: string | null;
   bullets: string[];
+  includeInResume: boolean;
 }
 
 export interface SocialLinkAdmin extends SocialLink {
   id: number;
+  includeInResume: boolean;
 }
 
 export interface SocialLinkWriteBody {
   label: string;
   url: string;
+  includeInResume: boolean;
 }
 
 export interface CertificationAdmin {
@@ -45,6 +50,7 @@ export interface CertificationAdmin {
   issuer: string;
   date: string | null;
   url: string | null;
+  includeInResume: boolean;
 }
 
 export interface ProfileCoreBody {
@@ -74,12 +80,14 @@ export interface ExperienceWriteBody {
   role: string;
   period: string;
   bullets: string[];
+  includeInResume: boolean;
 }
 
 export interface PriorEducationWriteBody {
   school: string;
   credential: string;
   period: string;
+  includeInResume: boolean;
 }
 
 export interface ProjectWriteBody {
@@ -88,6 +96,7 @@ export interface ProjectWriteBody {
   period: string;
   demoUrl: string | null;
   bullets: string[];
+  includeInResume: boolean;
 }
 
 export interface CertificationWriteBody {
@@ -95,6 +104,7 @@ export interface CertificationWriteBody {
   issuer: string;
   date: string | null;
   url: string | null;
+  includeInResume: boolean;
 }
 
 export interface SkillCategoryWriteBody {

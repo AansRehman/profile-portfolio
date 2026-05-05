@@ -122,6 +122,7 @@ public class PortfolioAdminService {
     e.setPeriod(req.period());
     e.getBullets().clear();
     e.getBullets().addAll(req.bullets());
+    e.setIncludeInResume(includeFlagOrDefault(req.includeInResume()));
     return toExpAdmin(experienceEntryRepository.save(e));
   }
 
@@ -135,7 +136,14 @@ public class PortfolioAdminService {
 
   public List<PriorEducationAdminDto> listPriorEducation() {
     return priorEducationRepository.findAllByOrderByIdAsc().stream()
-        .map(p -> new PriorEducationAdminDto(p.getId(), p.getSchool(), p.getCredential(), p.getPeriod()))
+        .map(
+            p ->
+                new PriorEducationAdminDto(
+                    p.getId(),
+                    p.getSchool(),
+                    p.getCredential(),
+                    p.getPeriod(),
+                    includeFlagOrDefault(p.getIncludeInResume())))
         .toList();
   }
 
@@ -145,9 +153,14 @@ public class PortfolioAdminService {
     p.setSchool(req.school());
     p.setCredential(req.credential());
     p.setPeriod(req.period());
+    p.setIncludeInResume(includeFlagOrDefault(req.includeInResume()));
     PriorEducationEntry saved = priorEducationRepository.save(p);
     return new PriorEducationAdminDto(
-        saved.getId(), saved.getSchool(), saved.getCredential(), saved.getPeriod());
+        saved.getId(),
+        saved.getSchool(),
+        saved.getCredential(),
+        saved.getPeriod(),
+        includeFlagOrDefault(saved.getIncludeInResume()));
   }
 
   @Transactional
@@ -159,9 +172,14 @@ public class PortfolioAdminService {
     p.setSchool(req.school());
     p.setCredential(req.credential());
     p.setPeriod(req.period());
+    p.setIncludeInResume(includeFlagOrDefault(req.includeInResume()));
     PriorEducationEntry saved = priorEducationRepository.save(p);
     return new PriorEducationAdminDto(
-        saved.getId(), saved.getSchool(), saved.getCredential(), saved.getPeriod());
+        saved.getId(),
+        saved.getSchool(),
+        saved.getCredential(),
+        saved.getPeriod(),
+        includeFlagOrDefault(saved.getIncludeInResume()));
   }
 
   @Transactional
@@ -220,6 +238,7 @@ public class PortfolioAdminService {
     c.setIssuer(req.issuer());
     c.setDateAwarded(req.date());
     c.setCertificateUrl(normalizeCertUrl(req.url()));
+    c.setIncludeInResume(includeFlagOrDefault(req.includeInResume()));
     return toCertAdmin(certificationRepository.save(c));
   }
 
@@ -240,6 +259,7 @@ public class PortfolioAdminService {
     SocialLinkEntry e = new SocialLinkEntry();
     e.setLabel(req.label().trim());
     e.setUrl(normalizeSocialUrl(req.url()));
+    e.setIncludeInResume(includeFlagOrDefault(req.includeInResume()));
     return toSocialAdmin(socialLinkRepository.save(e));
   }
 
@@ -251,6 +271,7 @@ public class PortfolioAdminService {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     e.setLabel(req.label().trim());
     e.setUrl(normalizeSocialUrl(req.url()));
+    e.setIncludeInResume(includeFlagOrDefault(req.includeInResume()));
     return toSocialAdmin(socialLinkRepository.save(e));
   }
 
@@ -290,6 +311,7 @@ public class PortfolioAdminService {
     e.setRoleTitle(req.role());
     e.setPeriod(req.period());
     e.setBullets(new ArrayList<>(req.bullets()));
+    e.setIncludeInResume(includeFlagOrDefault(req.includeInResume()));
     return e;
   }
 
@@ -300,7 +322,8 @@ public class PortfolioAdminService {
         e.getClientNote(),
         e.getRoleTitle(),
         e.getPeriod(),
-        List.copyOf(e.getBullets()));
+        List.copyOf(e.getBullets()),
+        includeFlagOrDefault(e.getIncludeInResume()));
   }
 
   private void applyProject(PortfolioProject p, ProjectWriteRequest req) {
@@ -310,6 +333,7 @@ public class PortfolioAdminService {
     p.setDemoUrl(req.demoUrl());
     p.getBullets().clear();
     p.getBullets().addAll(req.bullets());
+    p.setIncludeInResume(includeFlagOrDefault(req.includeInResume()));
   }
 
   private PortfolioProject fromProjectWrite(ProjectWriteRequest req) {
@@ -325,7 +349,8 @@ public class PortfolioAdminService {
         p.getStack(),
         p.getPeriod(),
         p.getDemoUrl(),
-        List.copyOf(p.getBullets()));
+        List.copyOf(p.getBullets()),
+        includeFlagOrDefault(p.getIncludeInResume()));
   }
 
   private CertificationEntry fromCertWrite(CertificationWriteRequest req) {
@@ -334,6 +359,7 @@ public class PortfolioAdminService {
     c.setIssuer(req.issuer());
     c.setDateAwarded(req.date());
     c.setCertificateUrl(normalizeCertUrl(req.url()));
+    c.setIncludeInResume(includeFlagOrDefault(req.includeInResume()));
     return c;
   }
 
@@ -343,7 +369,12 @@ public class PortfolioAdminService {
             ? c.getCertificateUrl().trim()
             : null;
     return new CertificationAdminDto(
-        c.getId(), c.getTitle(), c.getIssuer(), c.getDateAwarded(), u);
+        c.getId(),
+        c.getTitle(),
+        c.getIssuer(),
+        c.getDateAwarded(),
+        u,
+        includeFlagOrDefault(c.getIncludeInResume()));
   }
 
   private static String normalizeCertUrl(String raw) {
@@ -357,7 +388,11 @@ public class PortfolioAdminService {
   }
 
   private SocialLinkAdminDto toSocialAdmin(SocialLinkEntry s) {
-    return new SocialLinkAdminDto(s.getId(), s.getLabel().trim(), s.getUrl().trim());
+    return new SocialLinkAdminDto(
+        s.getId(),
+        s.getLabel().trim(),
+        s.getUrl().trim(),
+        includeFlagOrDefault(s.getIncludeInResume()));
   }
 
   private static String normalizeSocialUrl(String raw) {
@@ -367,5 +402,9 @@ public class PortfolioAdminService {
       t = "https://" + t;
     }
     return t;
+  }
+
+  private static boolean includeFlagOrDefault(Boolean includeInResume) {
+    return includeInResume == null || includeInResume;
   }
 }

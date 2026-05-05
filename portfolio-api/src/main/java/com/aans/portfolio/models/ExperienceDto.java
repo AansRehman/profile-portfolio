@@ -8,4 +8,5 @@ public record ExperienceDto(
     @JsonProperty("clientOrNote") String clientOrNote,
     @JsonProperty("role") String role,
     String period,
-    List<String> bullets) {}
+    List<String> bullets,
+    boolean includeInResume) {}

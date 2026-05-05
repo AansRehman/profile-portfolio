@@ -1,3 +1,3 @@
 package com.aans.portfolio.models;
 
-public record SocialLinkDto(String label, String url) {}
+public record SocialLinkDto(String label, String url, boolean includeInResume) {}

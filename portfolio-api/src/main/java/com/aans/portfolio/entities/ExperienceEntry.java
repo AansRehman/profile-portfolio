@@ -40,6 +40,9 @@ public class ExperienceEntry {
   @Column(nullable = false, length = 120)
   private String period;
 
+  @Column
+  private Boolean includeInResume = true;
+
   @ElementCollection(fetch = FetchType.EAGER)
   @CollectionTable(name = "experience_bullets", joinColumns = @JoinColumn(name = "experience_id"))
   @OrderColumn(name = "line_idx")

@@ -9,4 +9,5 @@ public record ExperienceAdminDto(
     @JsonProperty("clientOrNote") String clientOrNote,
     @JsonProperty("role") String role,
     String period,
-    List<String> bullets) {}
+    List<String> bullets,
+    boolean includeInResume) {}

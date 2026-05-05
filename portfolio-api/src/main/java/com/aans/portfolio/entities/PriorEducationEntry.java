@@ -29,4 +29,7 @@ public class PriorEducationEntry {
 
   @Column(nullable = false, length = 120)
   private String period;
+
+  @Column
+  private Boolean includeInResume = true;
 }

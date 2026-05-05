@@ -10,4 +10,5 @@ public record ExperienceWriteRequest(
     @JsonProperty("clientOrNote") String clientOrNote,
     @NotBlank @JsonProperty("role") String role,
     @NotBlank String period,
-    @NotEmpty List<String> bullets) {}
+    @NotEmpty List<String> bullets,
+    @JsonProperty("includeInResume") Boolean includeInResume) {}

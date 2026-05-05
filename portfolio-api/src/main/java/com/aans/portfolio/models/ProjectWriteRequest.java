@@ -9,4 +9,5 @@ public record ProjectWriteRequest(
     @NotBlank String stack,
     @NotBlank String period,
     String demoUrl,
-    @NotEmpty List<String> bullets) {}
+    @NotEmpty List<String> bullets,
+    Boolean includeInResume) {}

@@ -1,0 +1,17 @@
+server:
+  port: 8090
+
+resume-builder:
+  portfolio-api-base-url: ${PORTFOLIO_API_BASE_URL:http://localhost:8080}
+  # russell.cls needs XeLaTeX or LuaLaTeX (fontspec). Example full path on Windows:
+  # C:\Users\...\MiKTeX\miktex\bin\x64\xelatex.exe
+  latex-command: ${LATEX_COMMAND:${RESUME_LATEX_COMMAND:xelatex}}
+  # Deprecated: used only if latex-command is empty (e.g. older env PDFLATEX_COMMAND).
+  pdflatex-command: ${PDFLATEX_COMMAND:}
+  default-output-name: ${RESUME_OUTPUT_NAME:aans-resume}
+
+logging:
+  level:
+    root: INFO
+    # TRACE also logs RestTemplate internals; INFO is usually enough for resume timings.
+    com.aans.resume: INFO

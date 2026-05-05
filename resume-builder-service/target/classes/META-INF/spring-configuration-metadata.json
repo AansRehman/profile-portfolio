@@ -1,0 +1,32 @@
+{
+  "groups": [
+    {
+      "name": "resume-builder",
+      "type": "com.aans.resume.config.ResumeBuilderProperties",
+      "sourceType": "com.aans.resume.config.ResumeBuilderProperties"
+    }
+  ],
+  "properties": [
+    {
+      "name": "resume-builder.default-output-name",
+      "type": "java.lang.String",
+      "sourceType": "com.aans.resume.config.ResumeBuilderProperties"
+    },
+    {
+      "name": "resume-builder.latex-command",
+      "type": "java.lang.String",
+      "sourceType": "com.aans.resume.config.ResumeBuilderProperties"
+    },
+    {
+      "name": "resume-builder.pdflatex-command",
+      "type": "java.lang.String",
+      "sourceType": "com.aans.resume.config.ResumeBuilderProperties"
+    },
+    {
+      "name": "resume-builder.portfolio-api-base-url",
+      "type": "java.lang.String",
+      "sourceType": "com.aans.resume.config.ResumeBuilderProperties"
+    }
+  ],
+  "hints": []
+}

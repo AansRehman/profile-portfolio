@@ -277,6 +277,7 @@ public class DatabaseSeedRunner implements CommandLineRunner {
     p.setSchool(school);
     p.setCredential(credential);
     p.setPeriod(period);
+    p.setIncludeInResume(true);
     return p;
   }
 
@@ -288,6 +289,7 @@ public class DatabaseSeedRunner implements CommandLineRunner {
     e.setRoleTitle(roleTitle);
     e.setPeriod(period);
     e.setBullets(new ArrayList<>(bullets));
+    e.setIncludeInResume(true);
     return e;
   }
 
@@ -313,6 +315,7 @@ public class DatabaseSeedRunner implements CommandLineRunner {
     p.setPeriod(period);
     p.setDemoUrl(demo);
     p.setBullets(new ArrayList<>(bullets));
+    p.setIncludeInResume(true);
     return p;
   }
 
@@ -323,6 +326,7 @@ public class DatabaseSeedRunner implements CommandLineRunner {
     c.setIssuer(issuer);
     c.setDateAwarded(date);
     c.setCertificateUrl(certificateUrl);
+    c.setIncludeInResume(true);
     return c;
   }
 
@@ -330,6 +334,7 @@ public class DatabaseSeedRunner implements CommandLineRunner {
     SocialLinkEntry s = new SocialLinkEntry();
     s.setLabel(label);
     s.setUrl(url);
+    s.setIncludeInResume(true);
     return s;
   }
 }

@@ -23,6 +23,7 @@ import type {
 @Injectable({ providedIn: 'root' })
 export class AdminPortfolioService {
   private readonly base = `${environment.apiBase}/admin`;
+  private readonly resumeBase = environment.resumeBuilderBase;
 
   constructor(private readonly http: HttpClient) {}
 
@@ -130,5 +131,11 @@ export class AdminPortfolioService {
 
   deleteSocialLink(id: number): Observable<void> {
     return this.http.delete<void>(`${this.base}/social-links/${id}`);
+  }
+
+  buildResumePdf(): Observable<Blob> {
+    return this.http.post(`${this.resumeBase}/api/resume/build`, null, {
+      responseType: 'blob',
+    });
   }
 }

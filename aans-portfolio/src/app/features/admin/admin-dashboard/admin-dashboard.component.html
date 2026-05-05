@@ -2,10 +2,27 @@
   <header class="dash__head">
     <h1>Admin</h1>
     <div class="dash__actions">
+      <button
+        type="button"
+        class="dash__btn-resume dash__logout"
+        [class.dash__btn-resume--busy]="resumePdfBuilding()"
+        [disabled]="loading() || resumePdfBuilding()"
+        [attr.aria-busy]="resumePdfBuilding()"
+        (click)="buildResumePdf()"
+      >
+        @if (resumePdfBuilding()) {
+          <span class="dash__btn-resume-spinner" aria-hidden="true"></span>
+        }
+        <span>{{ resumePdfBuilding() ? 'Building PDF…' : 'Build resume PDF' }}</span>
+      </button>
       <a routerLink="/">Public site</a>
       <button type="button" class="dash__logout" (click)="logout()">Sign out</button>
     </div>
   </header>
+
+  @if (resumePdfBuilding()) {
+    <p class="dash__resume-busy-msg" aria-live="polite">Generating your resume PDF—this may take a few seconds while LaTeX runs.</p>
+  }
 
   <p class="dash__note">
     Edits save to your Spring Boot API under <code>/api/admin</code>. The
@@ -21,10 +38,17 @@
     <p class="dash__err">{{ msg }}</p>
   }
 
+  @if (resumePdfSuccess(); as ok) {
+    <p class="dash__ok">{{ ok }}</p>
+  }
+
   <div class="dash__layout">
     <nav class="dash__nav" aria-label="Jump to forms on this dashboard">
       <h2 class="dash__nav-title">Forms &amp; lists</h2>
       <ul class="dash__nav-list">
+        <li>
+          <button type="button" class="dash__nav-link" (click)="scrollToSection('admin-section-resume')">Resume PDF</button>
+        </li>
         <li>
           <button type="button" class="dash__nav-link" (click)="scrollToSection('admin-form-core')">Core profile</button>
         </li>
@@ -88,6 +112,14 @@
     </nav>
 
     <main class="dash__main">
+  <section class="panel panel--resume" id="admin-section-resume">
+    <h2>Resume PDF</h2>
+    <p class="panel__hint">
+      Use <strong>Build resume PDF</strong> (header) after you edit content. Toggle the
+      <strong>In resume</strong> checkboxes in the tables below for social links, prior education, experience, projects, and certifications—those choices control what the backend sends to LaTeX. You can still use <em>Include in resume</em> inside each dialog when adding or editing a row.
+    </p>
+  </section>
+
   <section class="panel" id="admin-section-core">
     <h2>Core profile</h2>
     <p class="panel__hint">
@@ -131,6 +163,9 @@
             <th>ID</th>
             <th>Label</th>
             <th scope="col" class="cert-url-col">URL</th>
+            <th scope="col" class="table-col-include" title="Whether this row is included in the generated resume PDF">
+              In resume
+            </th>
             <th><span class="visually-hidden">Actions</span></th>
           </tr>
         </thead>
@@ -141,6 +176,17 @@
               <td>{{ row.label }}</td>
               <td class="cert-url-col">
                 <a class="dash__external" [href]="row.url" [attr.title]="row.url" target="_blank" rel="noopener noreferrer">{{ row.url }}</a>
+              </td>
+              <td class="table-col-include">
+                <label class="table-include-label">
+                  <input
+                    type="checkbox"
+                    [checked]="row.includeInResume"
+                    [disabled]="loading() || isResumeIncludeSaving('soc', row.id)"
+                    (change)="toggleSocialResumeInclude(row, $event)"
+                  />
+                  <span class="visually-hidden">Include in resume PDF</span>
+                </label>
               </td>
               <td class="nowrap">
                 <div class="row-actions" role="group" [attr.aria-label]="'Actions for social link: ' + row.label">
@@ -264,6 +310,9 @@
               <th>School</th>
               <th>Credential</th>
               <th>Period</th>
+              <th scope="col" class="table-col-include" title="Included in resume PDF">
+                In resume
+              </th>
               <th><span class="visually-hidden">Actions</span></th>
             </tr>
           </thead>
@@ -274,6 +323,17 @@
                 <td>{{ p.school }}</td>
                 <td>{{ p.credential }}</td>
                 <td>{{ p.period }}</td>
+                <td class="table-col-include">
+                  <label class="table-include-label">
+                    <input
+                      type="checkbox"
+                      [checked]="p.includeInResume"
+                      [disabled]="loading() || isResumeIncludeSaving('prior', p.id)"
+                      (change)="togglePriorResumeInclude(p, $event)"
+                    />
+                    <span class="visually-hidden">Include in resume PDF</span>
+                  </label>
+                </td>
                 <td class="nowrap">
                   <div class="row-actions" role="group" [attr.aria-label]="'Actions for prior education: ' + p.school">
                     <button
@@ -357,6 +417,9 @@
             <th>Role</th>
             <th>Company</th>
             <th>Period</th>
+            <th scope="col" class="table-col-include" title="Included in resume PDF">
+              In resume
+            </th>
             <th><span class="visually-hidden">Actions</span></th>
           </tr>
         </thead>
@@ -367,6 +430,17 @@
               <td>{{ e.role }}</td>
               <td>{{ e.company }}</td>
               <td>{{ e.period }}</td>
+              <td class="table-col-include">
+                <label class="table-include-label">
+                  <input
+                    type="checkbox"
+                    [checked]="e.includeInResume"
+                    [disabled]="loading() || isResumeIncludeSaving('exp', e.id)"
+                    (change)="toggleExperienceResumeInclude(e, $event)"
+                  />
+                  <span class="visually-hidden">Include in resume PDF</span>
+                </label>
+              </td>
               <td class="nowrap">
                 <div class="row-actions" role="group" [attr.aria-label]="'Actions for experience: ' + e.role">
                   <button
@@ -447,6 +521,9 @@
             <th>Name</th>
             <th>Stack</th>
             <th>Period</th>
+            <th scope="col" class="table-col-include" title="Included in resume PDF">
+              In resume
+            </th>
             <th><span class="visually-hidden">Actions</span></th>
           </tr>
         </thead>
@@ -457,6 +534,17 @@
               <td>{{ p.name }}</td>
               <td>{{ p.stack }}</td>
               <td>{{ p.period }}</td>
+              <td class="table-col-include">
+                <label class="table-include-label">
+                  <input
+                    type="checkbox"
+                    [checked]="p.includeInResume"
+                    [disabled]="loading() || isResumeIncludeSaving('proj', p.id)"
+                    (change)="toggleProjectResumeInclude(p, $event)"
+                  />
+                  <span class="visually-hidden">Include in resume PDF</span>
+                </label>
+              </td>
               <td class="nowrap">
                 <div class="row-actions" role="group" [attr.aria-label]="'Actions for project: ' + p.name">
                   <button
@@ -538,6 +626,9 @@
             <th>Issuer</th>
             <th>Date</th>
             <th scope="col" class="cert-url-col">Link</th>
+            <th scope="col" class="table-col-include" title="Included in resume PDF">
+              In resume
+            </th>
             <th><span class="visually-hidden">Actions</span></th>
           </tr>
         </thead>
@@ -560,6 +651,17 @@
                 } @else {
                   <span class="dash__muted-inline">—</span>
                 }
+              </td>
+              <td class="table-col-include">
+                <label class="table-include-label">
+                  <input
+                    type="checkbox"
+                    [checked]="c.includeInResume"
+                    [disabled]="loading() || isResumeIncludeSaving('cert', c.id)"
+                    (change)="toggleCertResumeInclude(c, $event)"
+                  />
+                  <span class="visually-hidden">Include in resume PDF</span>
+                </label>
               </td>
               <td class="nowrap">
                 <div class="row-actions" role="group" [attr.aria-label]="'Actions for certification: ' + c.title">
@@ -723,6 +825,7 @@
             <span class="field-caption">Bullets (one per line)<span class="req">*</span></span>
             <textarea rows="5" formControlName="bulletsText"></textarea>
           </label>
+          <label class="modal-flag"><input type="checkbox" formControlName="includeInResume" /> Include in resume</label>
           <div class="admin-modal__actions">
             <button type="button" class="btn-secondary" (click)="cancelExperienceEdit()">Cancel</button>
             <button type="submit" class="btn" [disabled]="experienceForm.invalid">{{ experienceSubmitLabel() }}</button>
@@ -752,6 +855,7 @@
             <span class="field-caption">Period<span class="req">*</span></span>
             <input type="text" formControlName="period" />
           </label>
+          <label class="modal-flag"><input type="checkbox" formControlName="includeInResume" /> Include in resume</label>
           <div class="admin-modal__actions admin-modal__actions--full">
             <button type="button" class="btn-secondary" (click)="cancelPriorEdit()">Cancel</button>
             <button type="submit" class="btn" [disabled]="isPriorSaveDisabled()">{{ priorSubmitLabel() }}</button>
@@ -789,6 +893,7 @@
             <span class="field-caption">Bullets (one per line)<span class="req">*</span></span>
             <textarea rows="5" formControlName="bulletsText"></textarea>
           </label>
+          <label class="modal-flag"><input type="checkbox" formControlName="includeInResume" /> Include in resume</label>
           <div class="admin-modal__actions">
             <button type="button" class="btn-secondary" (click)="cancelProjectEdit()">Cancel</button>
             <button type="submit" class="btn" [disabled]="projectForm.invalid">{{ projectSubmitLabel() }}</button>
@@ -841,6 +946,7 @@
             <span class="field-caption">URL<span class="req">*</span></span>
             <input type="text" formControlName="url" placeholder="https://..." />
           </label>
+          <label class="modal-flag"><input type="checkbox" formControlName="includeInResume" /> Include in resume</label>
           <div class="admin-modal__actions admin-modal__actions--full">
             <button type="button" class="btn-secondary" (click)="cancelSocialEdit()">Cancel</button>
             <button type="submit" class="btn" [disabled]="socialForm.invalid">{{ socialSubmitLabel() }}</button>
@@ -874,6 +980,7 @@
             <span class="field-caption">Public link</span>
             <input type="text" formControlName="url" placeholder="optional — credential or issuer URL" />
           </label>
+          <label class="modal-flag"><input type="checkbox" formControlName="includeInResume" /> Include in resume</label>
           <div class="admin-modal__actions admin-modal__actions--full">
             <button type="button" class="btn-secondary" (click)="cancelCertEdit()">Cancel</button>
             <button type="submit" class="btn" [disabled]="certForm.invalid">{{ certSubmitLabel() }}</button>

@@ -33,4 +33,7 @@ public class CertificationEntry {
   /** Optional public link (credential / badge / issuer page). */
   @Column(length = 2000)
   private String certificateUrl;
+
+  @Column
+  private Boolean includeInResume = true;
 }
