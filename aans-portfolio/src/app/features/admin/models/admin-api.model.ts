@@ -112,3 +112,17 @@ export interface SkillCategoryWriteBody {
   items: string[];
   includeInResume: boolean;
 }
+
+export type UserRole = 'ADMIN' | 'EDITOR' | 'VIEWER';
+
+export interface AdminUser {
+  id: number;
+  username: string;
+  role: UserRole;
+}
+
+export interface AdminUserCreateBody {
+  username: string;
+  password: string;
+  role: UserRole;
+}

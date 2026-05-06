@@ -29,8 +29,8 @@ export class AdminLoginComponent {
     this.auth.login(username, password).subscribe({
       next: (r) => {
         this.auth.saveSession(r);
-        if (r.role === 'ADMIN') {
-          this.router.navigateByUrl('/admin/dashboard');
+        if (r.role === 'ADMIN' || r.role === 'EDITOR') {
+          this.router.navigateByUrl('/admin/profile-management');
         } else {
           this.router.navigateByUrl('/viewer');
         }

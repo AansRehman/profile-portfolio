@@ -58,6 +58,8 @@ public class DatabaseSeedRunner implements CommandLineRunner {
     appUserRepository.save(
         new AppUser(null, "admin", passwordEncoder.encode("ChangeMe_Admin!"), Role.ADMIN));
     appUserRepository.save(
+        new AppUser(null, "editor", passwordEncoder.encode("ChangeMe_Editor!"), Role.EDITOR));
+    appUserRepository.save(
         new AppUser(null, "viewer", passwordEncoder.encode("ChangeMe_Viewer!"), Role.VIEWER));
 
     ProfileCore core = new ProfileCore();

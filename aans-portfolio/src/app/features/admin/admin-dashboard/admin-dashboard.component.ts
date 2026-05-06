@@ -198,6 +198,7 @@ export class AdminDashboardComponent implements OnInit {
     categories: this.fb.array<FormGroup>([]),
   });
 
+
   constructor(
     private readonly adminApi: AdminPortfolioService,
     private readonly fb: FormBuilder,
@@ -769,6 +770,7 @@ export class AdminDashboardComponent implements OnInit {
         },
       });
   }
+
 
   logout(): void {
     this.auth.logout();

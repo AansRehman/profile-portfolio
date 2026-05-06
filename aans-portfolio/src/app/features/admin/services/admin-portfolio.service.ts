@@ -4,6 +4,8 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import type {
   AboutSectionPath,
+  AdminUser,
+  AdminUserCreateBody,
   AdminProfile,
   CertificationAdmin,
   CertificationWriteBody,
@@ -18,6 +20,7 @@ import type {
   SocialLinkAdmin,
   SocialLinkWriteBody,
   UniversityEducationBody,
+  UserRole,
 } from '../models/admin-api.model';
 
 @Injectable({ providedIn: 'root' })
@@ -137,5 +140,17 @@ export class AdminPortfolioService {
     return this.http.post(`${this.resumeBase}/api/resume/build`, null, {
       responseType: 'blob',
     });
+  }
+
+  listUsers(): Observable<AdminUser[]> {
+    return this.http.get<AdminUser[]>(`${this.base}/users`);
+  }
+
+  createUser(body: AdminUserCreateBody): Observable<AdminUser> {
+    return this.http.post<AdminUser>(`${this.base}/users`, body);
+  }
+
+  updateUserRole(id: number, role: UserRole): Observable<AdminUser> {
+    return this.http.put<AdminUser>(`${this.base}/users/${id}/role`, { role });
   }
 }

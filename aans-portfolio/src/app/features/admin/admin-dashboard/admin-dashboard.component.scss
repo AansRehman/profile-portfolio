@@ -22,7 +22,8 @@
     }
 
     input,
-    textarea {
+    textarea,
+    select {
       padding: 0.45rem 0.55rem;
       border-radius: 8px;
       border: 1px solid var(--color-border);
@@ -122,6 +123,20 @@
   &.full {
     grid-column: 1 / -1;
   }
+}
+
+.users-create-form {
+  margin-bottom: 1rem;
+  max-width: 28rem;
+}
+
+.users-table select {
+  min-width: 8.5rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
 }
 
 .skills-table {
@@ -599,6 +614,41 @@
     }
   }
 
+  &__mode-nav {
+    position: fixed;
+    left: max(14px, env(safe-area-inset-left, 0px));
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 110;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.45rem;
+    margin: 0;
+    padding: 0.5rem;
+    border-radius: 12px;
+    border: 1px solid color-mix(in srgb, var(--color-accent) 26%, var(--color-border));
+    background: color-mix(in srgb, var(--color-surface) 88%, var(--color-bg-elevated));
+    box-shadow:
+      0 4px 16px rgb(0 0 0 / 0.08),
+      0 10px 24px rgb(0 0 0 / 0.14);
+  }
+
+  &__mode-nav a {
+    color: var(--color-accent);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.42rem 0.78rem;
+    border-radius: 9px;
+    white-space: nowrap;
+  }
+
+  &__mode-tab--active {
+    color: var(--color-text) !important;
+    background: color-mix(in srgb, var(--color-accent) 24%, transparent);
+  }
+
   &__logout {
     padding: 0.4rem 0.75rem;
     border-radius: 8px;
@@ -658,6 +708,47 @@
       opacity: 1;
       border-color: color-mix(in srgb, var(--color-accent) 42%, var(--color-border));
     }
+  }
+
+  &__quick-actions {
+    position: fixed;
+    right: max(14px, env(safe-area-inset-right, 0px));
+    bottom: max(14px, env(safe-area-inset-bottom, 0px));
+    z-index: 109;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    min-width: 170px;
+  }
+
+  &__quick-btn,
+  &__quick-link {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.35rem;
+    padding: 0.5rem 0.8rem;
+    border-radius: 10px;
+    border: 1px solid color-mix(in srgb, var(--color-accent) 32%, var(--color-border));
+    background: color-mix(in srgb, var(--color-surface) 86%, var(--color-bg-elevated));
+    color: var(--color-text);
+    text-decoration: none;
+    font-size: 0.84rem;
+    font-weight: 600;
+    box-shadow: 0 6px 18px rgb(0 0 0 / 0.15);
+  }
+
+  &__quick-btn {
+    cursor: pointer;
+  }
+
+  &__quick-btn--busy {
+    border-color: color-mix(in srgb, var(--color-accent) 48%, var(--color-border));
+  }
+
+  &__quick-link {
+    color: var(--color-accent);
   }
 
   &__btn-resume-spinner {

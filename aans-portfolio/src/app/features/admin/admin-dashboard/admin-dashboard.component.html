@@ -2,31 +2,39 @@
   <header class="dash__head">
     <h1>Admin</h1>
     <div class="dash__actions">
-      <button
-        type="button"
-        class="dash__btn-resume dash__logout"
-        [class.dash__btn-resume--busy]="resumePdfBuilding()"
-        [disabled]="loading() || resumePdfBuilding()"
-        [attr.aria-busy]="resumePdfBuilding()"
-        (click)="buildResumePdf()"
-      >
-        @if (resumePdfBuilding()) {
-          <span class="dash__btn-resume-spinner" aria-hidden="true"></span>
-        }
-        <span>{{ resumePdfBuilding() ? 'Building PDF…' : 'Build resume PDF' }}</span>
-      </button>
-      <button
-        type="button"
-        class="dash__logout"
-        [disabled]="loading() || resumePdfBuilding()"
-        (click)="previewResumePdf()"
-      >
-        Preview resume
-      </button>
-      <a routerLink="/">Public site</a>
       <button type="button" class="dash__logout" (click)="logout()">Sign out</button>
     </div>
   </header>
+  <nav class="dash__mode-nav" aria-label="Admin main navigation">
+    <a routerLink="/admin/profile-management" routerLinkActive="dash__mode-tab--active">Profile Management</a>
+    @if (auth.isAdmin()) {
+      <a routerLink="/admin/user-management" routerLinkActive="dash__mode-tab--active">User Management</a>
+    }
+  </nav>
+  <div class="dash__quick-actions" aria-label="Resume actions">
+    <button
+      type="button"
+      class="dash__quick-btn"
+      [class.dash__quick-btn--busy]="resumePdfBuilding()"
+      [disabled]="loading() || resumePdfBuilding()"
+      [attr.aria-busy]="resumePdfBuilding()"
+      (click)="buildResumePdf()"
+    >
+      @if (resumePdfBuilding()) {
+        <span class="dash__btn-resume-spinner" aria-hidden="true"></span>
+      }
+      <span>{{ resumePdfBuilding() ? 'Building PDF…' : 'Build resume PDF' }}</span>
+    </button>
+    <button
+      type="button"
+      class="dash__quick-btn"
+      [disabled]="loading() || resumePdfBuilding()"
+      (click)="previewResumePdf()"
+    >
+      Preview resume
+    </button>
+    <a routerLink="/" class="dash__quick-link">Public site</a>
+  </div>
 
   @if (resumePdfBuilding()) {
     <p class="dash__resume-busy-msg" aria-live="polite">Generating your resume PDF—this may take a few seconds while LaTeX runs.</p>
@@ -127,6 +135,7 @@
       <strong>In resume</strong> checkboxes in the tables below for social links, prior education, experience, projects, and certifications—those choices control what the backend sends to LaTeX. You can still use <em>Include in resume</em> inside each dialog when adding or editing a row.
     </p>
   </section>
+
 
   <section class="panel" id="admin-section-core">
     <h2>Core profile</h2>
@@ -864,10 +873,6 @@
             }
           </tbody>
         </table>
-      </div>
-
-      <div class="form-actions">
-        <button type="submit" class="btn" [disabled]="isSkillsSaveDisabled()">Save all skills (replace)</button>
       </div>
     </form>
     @if (skillCategoriesArray.length === 0) {

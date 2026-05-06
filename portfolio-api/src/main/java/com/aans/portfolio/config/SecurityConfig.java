@@ -52,9 +52,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/resume/source")
                 .permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/me")
-                .hasAnyRole("ADMIN", "VIEWER")
+                .hasAnyRole("ADMIN", "EDITOR", "VIEWER")
                 .requestMatchers("/api/admin/**")
-                .hasRole("ADMIN")
+                .hasAnyRole("ADMIN", "EDITOR")
                 .anyRequest()
                 .denyAll());
     http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

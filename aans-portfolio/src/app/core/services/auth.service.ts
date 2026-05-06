@@ -13,6 +13,8 @@ export interface LoginResult {
   role: string;
 }
 
+export type AppRole = 'ADMIN' | 'EDITOR' | 'VIEWER';
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   readonly username = signal<string | null>(null);
@@ -56,12 +58,25 @@ export class AuthService {
     return localStorage.getItem(ROLE_KEY);
   }
 
+  getRoleTyped(): AppRole | null {
+    const role = this.getRole();
+    return role === 'ADMIN' || role === 'EDITOR' || role === 'VIEWER' ? role : null;
+  }
+
   isAdmin(): boolean {
     return this.getRole() === 'ADMIN';
   }
 
+  isEditor(): boolean {
+    return this.getRole() === 'EDITOR';
+  }
+
   isViewer(): boolean {
     return this.getRole() === 'VIEWER';
+  }
+
+  canEditProfile(): boolean {
+    return this.isAdmin() || this.isEditor();
   }
 
   isAuthenticated(): boolean {
