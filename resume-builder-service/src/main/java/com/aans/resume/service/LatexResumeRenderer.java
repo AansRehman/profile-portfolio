@@ -19,8 +19,10 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class LatexResumeRenderer {
-  private static final String SECTION_TIGHTEN = "\\vspace{0.35em}\n";
+  private static final String SECTION_TIGHTEN = "\\vspace{0.45em}\n";
   private static final String ENTRY_GAP = "\\vspace{0.5em}\n";
+  /** Small breathing room between the end of one section's entries and the next section title. */
+  private static final String SECTION_END_GAP = "\\vspace{0.5em}\n";
 
   public String render(ResumeProfile p) {
     StringBuilder o = new StringBuilder(20_000);
@@ -95,6 +97,7 @@ public class LatexResumeRenderer {
     o.append("\\vspace{6pt}\n\\begin{cvparagraph}\n");
     o.append(tex(s));
     o.append("\n\\end{cvparagraph}\n\\vspace{2pt}\n");
+    o.append(SECTION_END_GAP);
   }
 
   private static void appendEducation(StringBuilder o, ResumeProfile p) {
@@ -149,6 +152,7 @@ public class LatexResumeRenderer {
       }
       o.append("\\end{cventries2}\n");
     }
+    o.append(SECTION_END_GAP);
   }
 
   private static void appendExperience(StringBuilder o, ResumeProfile p) {
@@ -183,6 +187,7 @@ public class LatexResumeRenderer {
       }
     }
     o.append("\\end{cventries2}\n");
+    o.append(SECTION_END_GAP);
   }
 
   /** Matches template: {@code Company | client, \\textnormal{\\textit{role}}}. */
@@ -201,8 +206,15 @@ public class LatexResumeRenderer {
     if (cats == null || cats.isEmpty()) {
       return;
     }
+    List<SkillCategory> included =
+        cats.stream()
+            .filter(sc -> sc.includeInResume() == null || sc.includeInResume())
+            .toList();
+    if (included.isEmpty()) {
+      return;
+    }
     o.append("\\cvsection{SKILLS}\n").append(SECTION_TIGHTEN).append("\\begin{cvskills}\n");
-    for (SkillCategory sc : cats) {
+    for (SkillCategory sc : included) {
       String items =
           sc.items() == null
               ? ""
@@ -256,6 +268,7 @@ public class LatexResumeRenderer {
       }
     }
     o.append("\\end{cventries}\n");
+    o.append(SECTION_END_GAP);
   }
 
   private static List<String> normalizeLines(List<String> lines) {

@@ -297,6 +297,7 @@ public class DatabaseSeedRunner implements CommandLineRunner {
     SkillCategory cat = new SkillCategory();
     cat.setTitle(title);
     cat.setSortOrder(sortOrder);
+    cat.setIncludeInResume(true);
     int io = 0;
     for (String label : labels) {
       SkillItem it = new SkillItem();

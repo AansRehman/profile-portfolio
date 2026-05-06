@@ -783,50 +783,91 @@
         Add category
       </button>
     </div>
-    <form id="admin-form-skills" [formGroup]="skillForm" (ngSubmit)="saveSkills()" class="skills-form">
-      <div formArrayName="categories" class="skills-form__categories">
-        @for (row of skillCategoriesArray.controls; track $index; let idx = $index) {
-          <div [formGroupName]="idx" class="skill-category">
-            <div class="skill-category__head">
-              <span>Category {{ idx + 1 }}</span>
-              <button
-                type="button"
-                class="skill-category__remove"
-                (click)="removeSkillCategoryRow(idx)"
-                [title]="'Remove category ' + (idx + 1)"
-              >
-                <span class="visually-hidden">Remove category {{ idx + 1 }}</span>
-                <svg
-                  class="skill-category__remove-icon"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  aria-hidden="true"
-                >
-                  <path d="M3 6h18" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
-                  <path
-                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                    stroke="currentColor"
-                    stroke-width="1.75"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
+    <form id="admin-form-skills" [formGroup]="skillForm" (ngSubmit)="saveSkills()">
+      <div class="table-wrap">
+        <table class="cert-table skills-table">
+          <thead>
+            <tr>
+              <th scope="col" class="table-col-include" title="Included in resume PDF">
+                <label class="table-include-label table-include-label--header" title="Select all skill categories for resume">
+                  <input
+                    type="checkbox"
+                    [checked]="areAllSkillCategoriesIncluded()"
+                    [disabled]="loading() || skillsIncludeSaving() || skillCategoriesArray.length === 0"
+                    (change)="toggleAllSkillCategoriesInclude($event)"
                   />
-                  <path d="M10 11v7M14 11v7" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
-                </svg>
-              </button>
-            </div>
-            <label> Title <input type="text" formControlName="title" /> </label>
-            <label class="full">
-              Items (one per line)
-              <textarea rows="5" formControlName="itemsText"></textarea>
-            </label>
-          </div>
-        }
+                  <span class="visually-hidden">Include all skill categories in resume</span>
+                </label>
+              </th>
+              <th>Category</th>
+              <th scope="col" class="skills-items-col">Items</th>
+              <th><span class="visually-hidden">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody formArrayName="categories">
+            @for (row of skillCategoriesArray.controls; track $index; let idx = $index) {
+              <tr [formGroupName]="idx">
+                <td class="table-col-include">
+                  <label class="table-include-label">
+                    <input
+                      type="checkbox"
+                      [checked]="row.get('includeInResume')?.value ?? true"
+                      [disabled]="loading() || skillsIncludeSaving()"
+                      (change)="toggleSkillIncludeInResume(idx, $event)"
+                    />
+                    <span class="visually-hidden">Include in resume PDF</span>
+                  </label>
+                </td>
+                <td class="skills-title-col">{{ row.get('title')?.value }}</td>
+                <td class="skills-items-col" [attr.title]="skillItemsPreview(idx)">{{ skillItemsPreview(idx) }}</td>
+                <td class="nowrap skills-actions">
+                  <div class="row-actions" role="group" [attr.aria-label]="'Actions for skill category: ' + (row.get('title')?.value ?? '')">
+                    <button
+                      type="button"
+                      class="row-action-btn"
+                      title="Edit"
+                      aria-label="Edit skill category"
+                      (click)="editSkillCategoryRow(idx)"
+                    >
+                      <svg class="row-action-btn__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path
+                          d="M17 3a2.828 2.828 0 1 1 4 4L8 21H4v-4L17 3z"
+                          stroke="currentColor"
+                          stroke-width="1.75"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      class="row-action-btn row-action-btn--danger"
+                      title="Delete"
+                      aria-label="Delete skill category"
+                      (click)="removeSkillCategoryRow(idx)"
+                    >
+                      <svg class="row-action-btn__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M3 6h18" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
+                        <path
+                          d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"
+                          stroke="currentColor"
+                          stroke-width="1.75"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                        <path d="M10 11v7M14 11v7" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
       </div>
+
       <div class="form-actions">
-        <button type="submit" class="btn" [disabled]="isSkillsSaveDisabled()">
-          Save all skills (replace)
-        </button>
+        <button type="submit" class="btn" [disabled]="isSkillsSaveDisabled()">Save all skills (replace)</button>
       </div>
     </form>
     @if (skillCategoriesArray.length === 0) {
@@ -955,12 +996,13 @@
     <div class="admin-modal-backdrop" (click)="backdropCloseSkills($event)" role="presentation">
       <div class="admin-modal admin-modal--skill" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
         <header class="admin-modal__header">
-          <h2 id="skills-cat-modal-title">Add skill category</h2>
+          <h2 id="skills-cat-modal-title">{{ skillModalTitle() }}</h2>
           <button type="button" class="admin-modal__close" (click)="cancelSkillCategoryModal()" aria-label="Close">
             ×
           </button>
         </header>
         <form class="admin-modal__body stack-form" [formGroup]="skillCategoryModalForm" (ngSubmit)="submitSkillCategoryModal()">
+          <label class="modal-flag"><input type="checkbox" formControlName="includeInResume" /> Include in resume</label>
           <label class="modal-field-label">
             <span class="field-caption">Title<span class="req">*</span></span>
             <input type="text" formControlName="title" />
@@ -971,7 +1013,7 @@
           </label>
           <div class="admin-modal__actions admin-modal__actions--solo">
             <button type="button" class="btn-secondary" (click)="cancelSkillCategoryModal()">Cancel</button>
-            <button type="submit" class="btn" [disabled]="skillCategoryModalForm.invalid">Add to list</button>
+            <button type="submit" class="btn" [disabled]="skillCategoryModalForm.invalid">{{ skillModalSubmitLabel() }}</button>
           </div>
         </form>
       </div>

@@ -124,102 +124,38 @@
   }
 }
 
-.skills-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
+.skills-table {
+  table-layout: fixed;
 
-  &__categories {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+  th:last-child,
+  td:last-child {
+    width: 6.5rem;
+    text-align: right;
   }
 }
 
-.skill-category {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  padding: 1.15rem 1.25rem;
-  background: var(--color-bg-elevated);
+.skills-title-col {
+  font-weight: 650;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-  &__head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin: 0;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--color-border);
-    font-size: 0.8rem;
-    color: var(--color-muted);
-  }
+.skills-items-col {
+  box-sizing: border-box;
+  width: 18rem;
+  max-width: 18rem;
+  overflow: hidden;
+  vertical-align: middle;
+  color: var(--color-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-  &__remove {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.125rem;
-    height: 2.125rem;
-    margin: 0;
-    padding: 0;
-    border-radius: 7px;
-    border: 1px solid color-mix(in srgb, #f0a4a4 42%, var(--color-border));
-    background: color-mix(in srgb, #f0a4a4 9%, var(--color-surface));
-    color: #f0a4a4;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition:
-      border-color 0.14s ease,
-      background 0.14s ease,
-      color 0.14s ease,
-      transform 0.12s ease;
-
-    &:hover {
-      border-color: color-mix(in srgb, #f0a4a4 65%, var(--color-border));
-      background: color-mix(in srgb, #f0a4a4 16%, var(--color-surface));
-      color: #ffc4c4;
-    }
-
-    &:active {
-      transform: scale(0.96);
-    }
-
-    &:focus-visible {
-      outline: 2px solid #f0a4a4;
-      outline-offset: 2px;
-    }
-  }
-
-  &__remove-icon {
-    width: 15px;
-    height: 15px;
-    display: block;
-  }
-
-  label {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    font-size: 0.78rem;
-    color: var(--color-muted);
-    margin: 0;
-
-    &.full textarea {
-      min-height: 7rem;
-      line-height: 1.45;
-    }
-
-    input,
-    textarea {
-      padding: 0.5rem 0.6rem;
-      border-radius: 8px;
-      border: 1px solid var(--color-border);
-      background: var(--color-surface);
-      color: var(--color-text);
-      font-size: 0.88rem;
-    }
+.skills-actions {
+  .row-actions {
+    justify-content: flex-end;
   }
 }
 

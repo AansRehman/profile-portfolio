@@ -33,6 +33,9 @@ public class SkillCategory {
   @Column(nullable = false)
   private int sortOrder;
 
+  @Column
+  private Boolean includeInResume = true;
+
   @OneToMany(
       mappedBy = "category",
       cascade = CascadeType.ALL,

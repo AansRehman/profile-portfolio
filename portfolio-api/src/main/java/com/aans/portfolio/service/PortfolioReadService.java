@@ -117,6 +117,8 @@ public class PortfolioReadService {
         all.certifications().stream().filter(CertificationDto::includeInResume).toList();
     List<SocialLinkDto> social =
         all.socialLinks().stream().filter(SocialLinkDto::includeInResume).toList();
+    List<SkillCategoryDto> skills =
+        all.skillCategories().stream().filter(SkillCategoryDto::includeInResume).toList();
     return new ProfileResponse(
         all.name(),
         all.headline(),
@@ -130,7 +132,7 @@ public class PortfolioReadService {
         all.education(),
         prior,
         experiences,
-        all.skillCategories(),
+        skills,
         projects,
         certs);
   }
@@ -182,7 +184,7 @@ public class PortfolioReadService {
         c.getItems().stream().sorted((a, b) -> Integer.compare(a.getSortOrder(), b.getSortOrder()))
             .map(SkillItem::getLabel)
             .toList();
-    return new SkillCategoryDto(c.getTitle(), items);
+    return new SkillCategoryDto(c.getTitle(), items, includeFlagOrDefault(c.getIncludeInResume()));
   }
 
   private ProjectDto toProjectDto(PortfolioProject p) {

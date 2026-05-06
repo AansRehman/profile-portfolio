@@ -35,6 +35,7 @@ export interface Experience {
 export interface SkillCategory {
   title: string;
   items: string[];
+  includeInResume?: boolean;
 }
 
 export interface Project {

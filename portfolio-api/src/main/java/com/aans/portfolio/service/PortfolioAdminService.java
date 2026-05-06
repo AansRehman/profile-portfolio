@@ -291,6 +291,7 @@ public class PortfolioAdminService {
       SkillCategory cat = new SkillCategory();
       cat.setTitle(catReq.title());
       cat.setSortOrder(catOrder++);
+      cat.setIncludeInResume(includeFlagOrDefault(catReq.includeInResume()));
       int itemOrder = 0;
       List<String> labels = catReq.items() != null ? catReq.items() : List.of();
       for (String label : labels) {

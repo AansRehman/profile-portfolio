@@ -37,7 +37,7 @@ public record ResumeProfile(
       List<String> bullets,
       Boolean includeInResume) {}
 
-  public record SkillCategory(String title, List<String> items) {}
+  public record SkillCategory(String title, List<String> items, Boolean includeInResume) {}
 
   public record Project(
       String name,

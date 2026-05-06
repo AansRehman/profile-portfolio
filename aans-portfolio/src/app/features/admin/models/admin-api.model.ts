@@ -110,4 +110,5 @@ export interface CertificationWriteBody {
 export interface SkillCategoryWriteBody {
   title: string;
   items: string[];
+  includeInResume: boolean;
 }

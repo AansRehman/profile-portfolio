@@ -63,6 +63,8 @@ export class AdminDashboardComponent implements OnInit {
 
   /** True when categories differ from last load/save baseline. */
   readonly skillsDirty = signal(false);
+  /** True while skills include toggle is being persisted. */
+  readonly skillsIncludeSaving = signal(false);
   /** Matches an empty categories array until the first rebuild from profile. */
   private skillsSerializedBaseline = '[]';
 
@@ -118,6 +120,7 @@ export class AdminDashboardComponent implements OnInit {
   readonly certModalOpen = signal(false);
   readonly socialModalOpen = signal(false);
   readonly skillCategoryModalOpen = signal(false);
+  readonly skillEditingIdx = signal<number | null>(null);
 
   readonly socialForm = this.fb.nonNullable.group({
     label: ['', Validators.required],
@@ -132,6 +135,7 @@ export class AdminDashboardComponent implements OnInit {
   readonly skillCategoryModalForm = this.fb.nonNullable.group({
     title: ['', Validators.required],
     itemsText: ['', Validators.required],
+    includeInResume: [true],
   });
 
   readonly aboutTextsForm = this.fb.nonNullable.group({
@@ -287,24 +291,48 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   openSkillCategoryModal(): void {
-    this.skillCategoryModalForm.reset();
+    this.skillEditingIdx.set(null);
+    this.skillCategoryModalForm.reset({ title: '', itemsText: '', includeInResume: true });
     this.skillCategoryModalOpen.set(true);
   }
 
   cancelSkillCategoryModal(): void {
-    this.skillCategoryModalForm.reset();
+    this.skillEditingIdx.set(null);
+    this.skillCategoryModalForm.reset({ title: '', itemsText: '', includeInResume: true });
     this.skillCategoryModalOpen.set(false);
+  }
+
+  editSkillCategoryRow(idx: number): void {
+    const g = this.skillCategoriesArray.at(idx);
+    if (!g) return;
+    this.skillEditingIdx.set(idx);
+    const v = g.getRawValue() as { title: string; itemsText: string; includeInResume?: boolean };
+    this.skillCategoryModalForm.patchValue(
+      {
+        title: v.title ?? '',
+        itemsText: v.itemsText ?? '',
+        includeInResume: v.includeInResume ?? true,
+      },
+      { emitEvent: false },
+    );
+    this.skillCategoryModalOpen.set(true);
   }
 
   submitSkillCategoryModal(): void {
     if (this.skillCategoryModalForm.invalid) return;
     const v = this.skillCategoryModalForm.getRawValue();
-    this.skillCategoriesArray.push(
-      this.fb.nonNullable.group({
-        title: [v.title.trim(), Validators.required],
-        itemsText: [v.itemsText, Validators.required],
-      }),
-    );
+    const next = this.fb.nonNullable.group({
+      title: [v.title.trim(), Validators.required],
+      itemsText: [v.itemsText, Validators.required],
+      includeInResume: [v.includeInResume ?? true],
+    });
+
+    const idx = this.skillEditingIdx();
+    if (idx != null && idx >= 0 && idx < this.skillCategoriesArray.length) {
+      this.skillCategoriesArray.setControl(idx, next);
+    } else {
+      this.skillCategoriesArray.push(next);
+    }
     this.cancelSkillCategoryModal();
   }
 
@@ -805,6 +833,7 @@ export class AdminDashboardComponent implements OnInit {
           this.fb.nonNullable.group({
             title: [c.title, Validators.required],
             itemsText: [c.items.join('\n'), Validators.required],
+            includeInResume: [c.includeInResume ?? true],
           }),
         );
       }
@@ -890,10 +919,15 @@ export class AdminDashboardComponent implements OnInit {
 
   private serializeSkillsFormState(): string {
     const categories = this.skillCategoriesArray.controls.map((ctrl) => {
-      const v = ctrl.getRawValue() as { title: string; itemsText: string };
+      const v = ctrl.getRawValue() as {
+        title: string;
+        itemsText: string;
+        includeInResume?: boolean;
+      };
       return {
         title: (v.title ?? '').trim(),
         items: linesFromText(v.itemsText ?? ''),
+        includeInResume: v.includeInResume ?? true,
       };
     });
     return JSON.stringify(categories);
@@ -947,6 +981,63 @@ export class AdminDashboardComponent implements OnInit {
 
   removeSkillCategoryRow(index: number): void {
     this.skillCategoriesArray.removeAt(index);
+  }
+
+  toggleSkillIncludeInResume(idx: number, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const g = this.skillCategoriesArray.at(idx);
+    if (!g) return;
+    const prev = !!((g.getRawValue() as { includeInResume?: boolean }).includeInResume ?? true);
+    const next = input.checked;
+    if (prev === next || this.skillsIncludeSaving()) return;
+    g.patchValue({ includeInResume: next });
+    this.persistSkillsIncludeChange({
+      onError: () => {
+        g.patchValue({ includeInResume: prev });
+        input.checked = prev;
+      },
+    });
+  }
+
+  areAllSkillCategoriesIncluded(): boolean {
+    if (this.skillCategoriesArray.length === 0) return false;
+    return this.skillCategoriesArray.controls.every(
+      (g) => (g.getRawValue() as { includeInResume?: boolean }).includeInResume ?? true,
+    );
+  }
+
+  toggleAllSkillCategoriesInclude(event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    if (this.skillsIncludeSaving()) return;
+    const previous = this.skillCategoriesArray.controls.map(
+      (g) => ((g.getRawValue() as { includeInResume?: boolean }).includeInResume ?? true) as boolean,
+    );
+    for (const g of this.skillCategoriesArray.controls) {
+      g.patchValue({ includeInResume: checked });
+    }
+    this.persistSkillsIncludeChange({
+      onError: () => {
+        this.skillCategoriesArray.controls.forEach((g, idx) => {
+          g.patchValue({ includeInResume: previous[idx] ?? true });
+        });
+        (event.target as HTMLInputElement).checked = this.areAllSkillCategoriesIncluded();
+      },
+    });
+  }
+
+  skillItemsPreview(idx: number): string {
+    const g = this.skillCategoriesArray.at(idx);
+    if (!g) return '';
+    const v = g.getRawValue() as { itemsText?: string };
+    return linesFromText(v.itemsText ?? '').join(', ');
+  }
+
+  skillModalTitle(): string {
+    return this.skillEditingIdx() != null ? 'Edit skill category' : 'Add skill category';
+  }
+
+  skillModalSubmitLabel(): string {
+    return this.skillEditingIdx() != null ? 'Save category' : 'Add to list';
   }
 
   saveCore(): void {
@@ -1023,23 +1114,8 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   saveSkills(): void {
-    if (this.skillCategoriesArray.length > 0 && this.skillForm.invalid) {
-      this.apiMsg.set('Skills: each category needs a title and items text.');
-      return;
-    }
-    const body: SkillCategoryWriteBody[] = [];
-    for (const g of this.skillCategoriesArray.controls) {
-      const row = g.getRawValue();
-      const title = (row['title'] as string).trim();
-      const items = linesFromText(row['itemsText'] as string);
-      if (!title || !items.length) {
-        this.apiMsg.set(
-          'Skills: every category must have a title and at least one item line. Remove empty rows or fix them.',
-        );
-        return;
-      }
-      body.push({ title, items });
-    }
+    const body = this.buildSkillsWriteBody();
+    if (!body) return;
     this.adminApi.replaceSkills(body).subscribe({
       next: () => {
         this.apiMsg.set(null);
@@ -1047,6 +1123,50 @@ export class AdminDashboardComponent implements OnInit {
       },
       error: () => this.apiMsg.set('Failed to save skills.'),
     });
+  }
+
+  private buildSkillsWriteBody(): SkillCategoryWriteBody[] | null {
+    if (this.skillCategoriesArray.length > 0 && this.skillForm.invalid) {
+      this.apiMsg.set('Skills: each category needs a title and items text.');
+      return null;
+    }
+    const body: SkillCategoryWriteBody[] = [];
+    for (const g of this.skillCategoriesArray.controls) {
+      const row = g.getRawValue();
+      const title = (row['title'] as string).trim();
+      const items = linesFromText(row['itemsText'] as string);
+      const includeInResume = (row['includeInResume'] as boolean) ?? true;
+      if (!title || !items.length) {
+        this.apiMsg.set(
+          'Skills: every category must have a title and at least one item line. Remove empty rows or fix them.',
+        );
+        return null;
+      }
+      body.push({ title, items, includeInResume });
+    }
+    return body;
+  }
+
+  private persistSkillsIncludeChange(opts: { onError: () => void }): void {
+    const body = this.buildSkillsWriteBody();
+    if (!body) {
+      opts.onError();
+      return;
+    }
+    this.skillsIncludeSaving.set(true);
+    this.adminApi
+      .replaceSkills(body)
+      .pipe(finalize(() => this.skillsIncludeSaving.set(false)))
+      .subscribe({
+        next: () => {
+          this.apiMsg.set(null);
+          this.captureSkillsBaseline();
+        },
+        error: () => {
+          opts.onError();
+          this.apiMsg.set('Failed to update include-in-resume for skill categories.');
+        },
+      });
   }
 
   submitExperience(): void {
